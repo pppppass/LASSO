@@ -1,1 +1,10 @@
 *~
+*.swp
+*.log
+*.synctex(busy)
+*.synctex.gz
+*.aux
+*.log
+*.out
+*.thm
+*.pdf
