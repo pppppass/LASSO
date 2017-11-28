@@ -164,7 +164,7 @@ These two algorithms are implemented by \verb"l1_sub_grad" in module \verb"metho
 
 \section{Numerical results}
 
-Numerical results are shown in Table \ref{Tbl:NumRes}
+Numerical results are shown in Table \ref{Tbl:NumRes}.
 
 \begin{table}[htbp]
 \centering
@@ -204,6 +204,8 @@ In Table \ref{Tbl:NumRes}, ``approximation error'' stands for $ \frac{1}{2} \nor
 All the codes are implemented in Python. These results are carried out on a computer with Intel Core i7-6500U (4 threads) and 7894 MiB RAM. The operating system is Arch Linux 4.13.12 64-bit and the Python environment is provided by Anaconda 4.3.30. The versions of Python, NumPy, CVXPY, MOSEK and Gurobi are 3.6.2, 1.13.1, 0.4.8, 8.1.31, 7.5.1 respectively.
 
 In Algorithm \ref{Alg:ProjNaive}, $ \eta = 0.001 $. In Algorithm \ref{Alg:ProjExpReg}, $ \eta = 0.002 $, $ i_0 = 1500 $ and $ \mu^{\rbr{0}} = 1000 $. In Algorithm \ref{Alg:SubNaive}, $ \eta = 0.0002 $. In Algorithm \ref{Alg:SubExpReg}, $ \eta = 0.0005 $, $ i_0 = 1500 $ and $ \mu^{\rbr{0}} = 1000 $.
+
+$x^{\rbr{0}}$ is not used when direct calling CVXPY or solvers.
 
 \section{Interpretations and Discussions}
 
