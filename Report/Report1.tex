@@ -171,14 +171,14 @@ Numerical results are shown in Table \ref{Tbl:NumRes}
 \begin{tabular}{|c|c|c|c|c|c|}
 \hline
 & time (\Si{\second}) & setup time (\Si{\second}) & solve time (\Si{\second}) & variables & iterations \\ \hline
-CVXPY-MOSEK & 1.143 & 0.073 & 0.656 & NA & 10  \\ \hline
-CVXPY-Gurobi & 15.709 & NA & 2.894 & NA & NA \\ \hline
-MOSEK & 0.750 & 0.080 & 0.660 & 2560 & 8 \\ \hline
-Gurobi & 17.445 & 16.416 & 1.019 & 2560 & 8 \\ \hline
-Algorithm \ref{Alg:ProjNaive} & 1.573 & NA & NA & 2048 & 2000 \\ \hline
-Algorithm \ref{Alg:ProjExpReg} & 1.558 & NA & NA & 2048 & 2000 \\ \hline
-Algorithm \ref{Alg:SubNaive} & 1.113 & NA & NA & 2047 & 2000 \\ \hline
-Algorithm \ref{Alg:SubExpReg} & 1.121 & NA & NA & 1024 & 2000 \\ \hline
+CVXPY-MOSEK & 1.088 & 0.077 & 0.620 & NA & 9  \\ \hline
+CVXPY-Gurobi & 15.799 & NA & 2.783 & NA & NA \\ \hline
+MOSEK & 0.785 & 0.094 & 0.681 & 2560 & 9 \\ \hline
+Gurobi & 18.729 & 17.195 & 1.074 & 2560 & 14 \\ \hline
+Algorithm \ref{Alg:ProjNaive} & 1.618 & NA & NA & 2048 & 2000 \\ \hline
+Algorithm \ref{Alg:ProjExpReg} & 1.602 & NA & NA & 2048 & 2000 \\ \hline
+Algorithm \ref{Alg:SubNaive} & 1.149 & NA & NA & 1024 & 2000 \\ \hline
+Algorithm \ref{Alg:SubExpReg} & 1.142 & NA & NA & 1024 & 2000 \\ \hline
 \end{tabular}
 
 \ 
@@ -186,14 +186,14 @@ Algorithm \ref{Alg:SubExpReg} & 1.121 & NA & NA & 1024 & 2000 \\ \hline
 \begin{tabular}{|c|c|c|c|c|c|}
 \hline
 & primal objective & approximation error & error to known & error to GT \\ \hline
-CVXPY-MOSEK & 7.577e-02 & 2.107e-07 & 0.000e+00 & 1.450e-05 \\ \hline
-CVXPY-Gurobi & 7.577e-02 & 1.615e-07 & 8.663e-06 & 6.183e-06 \\ \hline
-MOSEK & 7.577e-02 & 8.775e-07 & 1.368e-05 & 2.560e-05 \\ \hline
-Gurobi & 7.577e-02 & 1.703e-21 & 1.447e-05 & 3.794e-08 \\ \hline
-Algorithm \ref{Alg:ProjNaive} & 5.773e-01 & 1.507e-07 & 1.300e+00 & 1.300e+00 \\ \hline
-Algorithm \ref{Alg:ProjExpReg} & 7.577e-02 & 1.233e-07 & 1.207e-05 & 2.868e-06 \\ \hline
-Algorithm \ref{Alg:SubNaive} & 3.816e-01 & 2.853e-07 & 1.436e+00 & 1.436e+00 \\ \hline
-Algorithm \ref{Alg:SubExpReg} & 7.577e-02 & 4.988e-07 & 1.036e-05 & 4.979e-06 \\ \hline
+CVXPY-MOSEK & 7.561e-02 & 2.060e-07 & 0.000e+00 & 1.641e-05 \\ \hline
+CVXPY-Gurobi & 7.561e-02 & 1.449e-07 & 1.093e-05 & 6.298e-06 \\ \hline
+MOSEK & 7.561e-02 & 1.785e-07 & 6.618e-05 & 1.242e-05 \\ \hline
+Gurobi & 7.561e-02 & 1.082e-07 & 1.446e-05 & 2.555e-06 \\ \hline
+Algorithm \ref{Alg:ProjNaive} & 5.764e-01 & 1.041e-07 & 1.253e+00 & 1.253e+00 \\ \hline
+Algorithm \ref{Alg:ProjExpReg} & 7.561e-02 & 1.081e-07 & 1.450e-05 & 2.509e-06 \\ \hline
+Algorithm \ref{Alg:SubNaive} & 3.830e-01 & 2.525e-07 & 1.405e+00 & 1.405e+00 \\ \hline
+Algorithm \ref{Alg:SubExpReg} & 7.561e-02 & 4.965e-07 & 1.305e-05 & 4.469e-06 \\ \hline
 \end{tabular}
 
 \caption{Numerical results} \label{Tbl:NumRes}
@@ -219,6 +219,6 @@ The intuition of modifications in Algorithm \ref{Alg:ProjExpReg} and \ref{Alg:Su
 \end{figure}
 To settle this issue, the regularization should be increased, and therefore an exponentially decreasing sequence of $\mu$ is introduced. Note that $ i_0 = 1500 $, and therefore the gradient method runs for 500 iterations for the original optimization problem, which ensures the solution not distorted.
 
-Note that the Gurobi is not compatible with the memory model of Python, which results in a difficiency in setup time.
+Note that the Gurobi is not compatible with the memory model of Python, which results in a difficiency in setup time. To be exact, the Python version of Gurobi uses a class named \verb"tupledict" to handle matrices and tensors which cannot be directly converted to \verb"numpy.array", and therefore conversion accounts for the abnormal long setup time. The solve time makes sense anyway.
 
 	\end{document}
