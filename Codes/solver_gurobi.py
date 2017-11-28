@@ -65,38 +65,25 @@ def l1_gurobi_nonexpand(x0, A, b, mu, options={}):
     
     M = Model("qp")
     
-    x_list = [M.addVar(lb=-GRB.INFINITY, ub=GRB.INFINITY) for i in range(n)]
-    t_list = [M.addVar(lb=-GRB.INFINITY, ub=GRB.INFINITY) for i in range(n)]
-    y_list = [M.addVar(lb=-GRB.INFINITY, ub=GRB.INFINITY) for i in range(m)]
+    x = M.addVars(n, lb=-GRB.INFINITY, ub=GRB.INFINITY)
+    y = M.addVars(m, lb=-GRB.INFINITY, ub=GRB.INFINITY)
+    t = M.addVars(n, lb=-GRB.INFINITY, ub=GRB.INFINITY)
     
-    for i in range(n):
-        M.addConstr(x_list[i] - t_list[i], GRB.LESS_EQUAL, 0.)
-        M.addConstr(x_list[i] + t_list[i], GRB.GREATER_EQUAL, 0.)
-    
-    obj = QuadExpr()
-    for i in range(m):
-        obj += 1. / 2. * y_list[i] * y_list[i]
-    for i in range(n):
-        obj += mu * t_list[i]
-
+    obj = 1. / 2. * y.prod(y) + mu * t.sum()
     M.setObjective(obj)
 
-    for i in range(n):
-        M.addConstr(x_list[i] - t_list[i], GRB.LESS_EQUAL, 0.)
-        M.addConstr(x_list[i] + t_list[i], GRB.GREATER_EQUAL, 0.)
+    M.addConstrs(x[i] - t[i] <= 0. for i in range(n))
+    M.addConstrs(x[i] + t[i] >= 0. for i in range(n))
 
-    for i in range(m):
-        con = LinExpr()
-        for j in range(n):
-            con += A[i][j] * x_list[j]
-        M.addConstr(con, GRB.EQUAL, b[i])
+    M.addConstrs(quicksum(A[i, j] * x[j] for j in range(n)) - y[i] == b[i, 0] for i in range(m))
     
     end_time = time.time()
     setup_time = end_time - start_time
     
     M.optimize()
-
-    solution = numpy.array(M.getAttr("x", x_list)).reshape(n, 1)
+    
+    xtd = M.getAttr("x", x)
+    solution = numpy.array([xtd[i] for i in range(n)]).reshape(n, 1)
     loss = M.getAttr("ObjVal")
     
     out = {
