@@ -104,7 +104,7 @@ def l1_mosek_fusion_socp(x0, A, b, mu, options={}):
             "num_var": M.getSolverIntInfo("optNumvar"),
             "iters": M.getSolverIntInfo("intpntIter"),
             "setup_time": setup_time,
-            "solve_time": M.getSolverDoubleInfo("optimizerTime")
+            "solve_time": M.getSolverDoubleInfo("optimizerTime"),
         }
 
         return [solution, out]

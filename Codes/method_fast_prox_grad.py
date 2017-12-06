@@ -1,24 +1,26 @@
 """
-Solve lasso regularized least square by projection gradient method.
+Solve lasso regularized least square by accelerated proximal gradient method.
 """
 
 import numpy
 
-def l1_proj_grad(x0, A, b, mu, options):
+def l1_fast_prox_grad(x0, A, b, mu, options):
     m, n = A.shape
     
-    def loss_func(u, v, mu):
-        x = (u - v) / 2.
+    def loss_func(x, mu):
         error = A.dot(x) - b
-        loss = 1. / 2. * numpy.sum(error**2) + mu * numpy.sum((u + v) / 2.)
+        loss = 1. / 2. * numpy.sum(error**2) + mu * numpy.sum(numpy.abs(x))
         return loss
-
-    def grad(u, v, mu):
-        x = (u - v) / 2.
+    
+    def grad(x):
         error = A.dot(x) - b
-        grad_u = 1. / 2. * A.transpose().dot(error) + 1. / 2. * mu * numpy.ones((n, 1))
-        grad_v = -1. / 2. * A.transpose().dot(error) + 1. / 2. * mu * numpy.ones((n, 1))
-        return (grad_u, grad_v)
+        grad_x = A.transpose().dot(error)
+        return grad_x
+    
+    def prox(y, mu, lr):
+        shrink_positive = numpy.maximum(0., y - mu*lr)
+        shrink_negative = numpy.minimum(0., y + mu*lr)
+        return shrink_positive + shrink_negative
     
     iters = options["iters"]
     list_avail, intel_loss_avail, intel_grad_norm2_avail = False, False, False
@@ -63,8 +65,8 @@ def l1_proj_grad(x0, A, b, mu, options):
     real_loss_list = []
     formal_loss_list = []
     
-    u = 2. * numpy.maximum(x0, 0.)
-    v = 2. * numpy.minimum(x0, 0.)
+    x = x0
+    x_old = x0
     
     i_count = 0
     loss, real_loss, last_loss = -1., -1., -1.
@@ -96,15 +98,15 @@ def l1_proj_grad(x0, A, b, mu, options):
             now_mu = mu_list[list_ctr]
             
         last_loss = loss
-        real_loss = loss_func(u, v, mu)
-        loss = loss_func(u, v, now_mu)
+        real_loss = loss_func(x, mu)
+        loss = loss_func(x, now_mu)
         
         real_loss_list.append(real_loss)
         formal_loss_list.append(loss)
         
         last_grad_norm2 = grad_norm2
-        grad_u, grad_v = grad(u, v, now_mu)
-        grad_norm2 = numpy.sum(grad_u**2) + numpy.sum(grad_v**2)
+        grad_x = grad(x)
+        grad_norm2 = numpy.sum(grad_x**2)
 
         if grad_norm2 < 1.e-6 or lr < 1.e-10:
             if list_avail:
@@ -128,40 +130,26 @@ def l1_proj_grad(x0, A, b, mu, options):
                 grad_norm2_bad_ctr = 0
                 if check_next_stage():
                     break
-        
-        if backtracking:
-            while True:
-                new_u = numpy.maximum(u - lr*grad_u, 0.)
-                new_v = numpy.maximum(v - lr*grad_v, 0.)
-                g_u = (u - new_u) / lr
-                g_v = (v - new_v) / lr
-                new_loss = loss_func(new_u, new_v, now_mu)
-                g_norm2 = numpy.sum(g_u**2) + numpy.sum(g_v**2)
-                grad_g = numpy.sum(grad_u*g_u) + numpy.sum(grad_v*g_v)
-                if new_loss < loss - lr * grad_g + lr / 2. * g_norm2:
-                    break
-                else:
-                    lr *= beta
-                    
+
         if sep != 0 and i % sep == 0:
             print(
 """At the {0}-th iteration,\
  loss = {1:.5e}, lr = {2:.5e},\
  mu = {3:.5e}, grad_norm2 = {4:.5e}""".format(i, real_loss, lr, now_mu, grad_norm2))
-
-        u = u - lr * grad_u
-        v = v - lr * grad_v
-
-        u = numpy.maximum(u, 0.)
-        v = numpy.maximum(v, 0.)
+        
+        y = x + (list_item_ctr - 2) / (list_item_ctr + 1) * (x - x_old)
+        x_old = x
+        
+        grad_y = grad(y)
+        x = prox(y - lr*grad_y, now_mu, lr)
     
-    solution = (u - v) / 2.
-    loss = loss_func(u, v, mu)
+    solution = x
+    loss = loss_func(x, mu)
     
     out = {
         "solution": solution,
         "loss": loss,
-        "num_var": 2*n,
+        "num_var": n,
         "iters": i_count,
         "setup_time": -1.,
         "solve_time": -1.,

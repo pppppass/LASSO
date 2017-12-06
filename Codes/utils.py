@@ -46,21 +46,14 @@ class Tester:
         approximation_loss = 1. / 2. * numpy.sum(error**2)
         regularization = numpy.sum(numpy.abs(value))
 
-        ret = {
-            "name": func.__name__,
-            "value": value,
-            "time": elapsed,
-            "setup_time": out["setup_time"],
-            "solve_time": out["solve_time"],
-            "num_var": out["num_var"],
-            "iters": out["iters"],
-            "loss": out["loss"],
-            "check_loss": check_loss,
-            "approximation_loss": approximation_loss,
-            "regularization": regularization,
-            "error_m": errfun(self.xx, value),
-            "error_g": errfun(self.u, value),
-        }
+        out["name"] = func.__name__
+        out["value"] = value
+        out["time"] = elapsed
+        out["check_loss"] = check_loss
+        out["approximation_loss"] = approximation_loss
+        out["regularization"] = regularization
+        out["error_m"] = errfun(self.xx, value)
+        out["error_g"] = errfun(self.u, value)
 
         print(
     """The function {name} is executed:
@@ -68,10 +61,10 @@ class Tester:
         vars: {num_var}, iters: {iters},
         loss: {loss:.5e} = check: {check_loss:.5e} (approx: {approximation_loss:5e} + mu*reg: {regularization:5e})
         error to known xx: {error_m:.5e}
-        error to ground-truth: {error_g:.5e}""".format(**ret)
+        error to ground-truth: {error_g:.5e}""".format(**out)
         )
 
-        return ret
+        return out
 
 def draw_sparse_figure(value):
     fig, ax = plt.subplots()
@@ -79,6 +72,22 @@ def draw_sparse_figure(value):
     n, bins, patches = ax.hist(value, bins=30)
 
     fig.tight_layout()
+    plt.show()
+    
+    return None
+
+def draw_loss_curve(array, label=None, log=False):
+    if label is not None:
+        for arr, lab in zip(array, label):
+            if log:
+                plt.plot(numpy.log(arr), label=lab)
+            else:
+                plt.plot(arr, label=lab)
+        plt.legend()
+    else:
+        for arr in array:
+            plt.plot(arr)
+
     plt.show()
     
     return None

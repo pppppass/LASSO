@@ -1,0 +1,246 @@
+% !TeX encoding = UTF-8 Unicode
+% !TeX program = LuaLaTeX
+% !TeX spellcheck = LaTeX
+
+% Author : lzh
+% Description : Convex Optimization Homework 5 Report 2
+
+\documentclass[english]{pkupaper}
+
+\usepackage[paper, algorithm, si]{def}
+
+\newcommand{\cuniversity}{Peking University}
+\newcommand{\cthesisname}{Convex Optimization Homework 5}
+\newcommand{\titlemark}{Homework 5 Report 2}
+
+\title{\titlemark}
+\author{%
+	\begin{tabular}{c}
+李知含 \\
+1600010653
+	\end{tabular}%
+}
+
+	\begin{document}
+
+	\maketitle
+
+\section{Answers to questions}
+
+\begin{thmquestion}[3 (c)]
+The gradient method for the smoothed primal problem using continuation method is shown in Algorihm \ref{Alg:SmoothSqrt} and \ref{Alg:SmoothLogExp}, which uses
+\begin{gather}
+s_1 \rbr{x} = \sqrt{ x^2 + \epsilon^2 } - \epsilon, \\
+s_2 \rbr{x} = \epsilon \ln \cosh \frac{x}{\epsilon}
+\end{gather}
+for smoothing $\abs{x}$ respectively. The function $\phi$ is
+\begin{equation}
+\phi \rbr{x} = s_1' \rbr{x} = \msbr{ \frac{x_1}{\sqrt{ x_1^2 + \epsilon^2 }}, \cdots, \frac{x_n}{\sqrt{ x_n^2 + \epsilon^2 }} }^{\rmut}.
+\end{equation}
+
+\begin{algorithm}
+\SetAlgoLined
+
+\KwData{$A$, $b$, $ \mu_j \crbr{ 1 \le j \le k } $, $x^{\rbr{0}}$, $\eta$, $\epsilon$}
+
+$ i \slar 0 $\;
+
+\For{$j$ from $1$ to $k$}
+{
+	\While{not satisfies stop condition}
+	{
+		$ \nabla f \rbr{x^{\rbr{i}}} \slar A^{\rmut} \rbr{ A x^{\rbr{i}} - b } + \mu_j \phi \rbr{x^{\rbr{i}}} $\;
+		$ x^{\rbr{ i + 1 }} \slar x^{\rbr{i}} - \eta \nabla f \rbr{x^{\rbr{i}}} $\;
+		$ i \slar i + 1 $\;
+	}
+}
+
+\caption{Gradient method with continuation for the smoothed primal problem using $s_1$} \label{Alg:SmoothSqrt}
+\end{algorithm}
+
+\begin{algorithm}
+\SetAlgoLined
+
+\KwData{$A$, $b$, $ \mu_j \crbr{ 1 \le j \le k } $, $x^{\rbr{0}}$, $\eta$, $\epsilon$}
+
+$ i \slar 0 $\;
+
+\For{$j$ from $1$ to $k$}
+{
+	\While{not satisfies stop condition}
+	{
+		$ \nabla f \rbr{x^{\rbr{i}}} \slar A^{\rmut} \rbr{ A x^{\rbr{i}} - b } + \mu_j \tanh \rbr{ x^{\rbr{i}} / \epsilon } $\;
+		$ x^{\rbr{ i + 1 }} \slar x^{\rbr{i}} - \eta \nabla f \rbr{x^{\rbr{i}}} $\;
+		$ i \slar i + 1 $\;
+	}
+}
+
+\caption{Gradient method with continuation for the smoothed primal problem using $s_2$} \label{Alg:SmoothLogExp}
+\end{algorithm}
+
+The functions are \verb"l1_smooth_grad_sqrt" and \verb"l1_smooth_grad_logexp" in module \verb"method_smooth_grad" respectively.
+\end{thmquestion}
+
+\begin{thmquestion}[3 (d)]
+Using continuation and $s_1$ for smoothing, the algorithm is shown in Algorihm \ref{Alg:FastSmoothSqrt}.
+
+\begin{algorithm}
+\SetAlgoLined
+
+\KwData{$A$, $b$, $ \mu_j \crbr{ 1 \le j \le k } $, $x^{\rbr{0}}$, $\eta$, $\epsilon$}
+
+$ i \slar 0 $\;
+$ x^{\rbr{-1}} = x^{\rbr{0}} $\;
+
+\For{$j$ from $1$ to $k$}
+{
+	$ i_j \slar 1 $\;
+	\While{not satisfies stop condition}
+	{
+		$ y = x^{\rbr{i}} + \frac{ i_j - 2 }{ i_j + 1 } \rbr{ x^{\rbr{i}} - x^{\rbr{ i - 1 }} } $\;
+		$ \nabla f \rbr{y} \slar A^{\rmut} \rbr{ A y - b } + \mu_j \phi \rbr{y} $\;
+		$ x^{\rbr{ i + 1 }} \slar y - \eta \nabla f \rbr{y} $\;
+		$ i \slar i + 1 $, $ i_j \slar i_j + 1 $\;
+	}
+}
+
+\caption{Fast gradient method with continuation for the smoothed primal problem using $s_1$} \label{Alg:FastSmoothSqrt}
+\end{algorithm}
+
+The functions is \verb"l1_fast_smooth_grad_sqrt" in module \verb"method_fast_smooth_grad".
+\end{thmquestion}
+
+\begin{thmquestion}[3 (e)]
+The algorithm with continuation is shown in Algorihm \ref{Alg:ProxGrad}, where $ g \rbr{x} = \frac{1}{2} \norm{ A x - b }_2^2 $, $ h \rbr{x} = \mu \norm{x}_1 $ and the objective function is $ f \rbr{x} = g \rbr{x} + h \rbr{x} $. The proximal mapping $\psi$ is the shrink function, which is
+\begin{equation}
+\psi_j \rbr{x} = \max \cbr{ 0, x - \mu_j \eta } + \min \cbr{ 0, x + \mu_j \eta }
+\end{equation}
+exactly.
+
+\begin{algorithm}
+\SetAlgoLined
+
+\KwData{$A$, $b$, $ \mu_j \crbr{ 1 \le j \le k } $, $x^{\rbr{0}}$, $\eta$}
+
+$ i \slar 0 $\;
+
+\For{$j$ from $1$ to $k$}
+{
+	\While{not satisfies stop condition}
+	{
+		$ \nabla g \rbr{x^{\rbr{i}}} \slar A^{\rmut} \rbr{ A x^{\rbr{i}} - b } $\;
+		$ x^{\rbr{ i + 1 }} \slar \psi_j \rbr{ x^{\rbr{i}} - \eta \nabla g \rbr{x^{\rbr{i}}} } $\;
+		$ i \slar i + 1 $\;
+	}
+}
+
+\caption{Proximal gradient method with continuation} \label{Alg:ProxGrad}
+\end{algorithm}
+
+The function is \verb"l1_prox_grad" in module \verb"method_prox_grad".
+\end{thmquestion}
+
+\begin{thmquestion}[3 (f)]
+The algorithm is shown in Algorihm \ref{Alg:FastProxGradNoCont} and \ref{Alg:FastProxGrad}.
+
+\begin{algorithm}
+\SetAlgoLined
+
+\KwData{$A$, $b$, $\mu$, $x^{\rbr{0}}$, $\eta$}
+
+$ i \slar 0 $\;
+
+\While{not satisfies stop condition}
+{
+	$ y = x^{\rbr{i}} + \frac{ i - 1 }{ i + 2 } \rbr{ x^{\rbr{i}} - x^{\rbr{ i - 1 }} } $\;
+	$ \nabla g \rbr{y} \slar A^{\rmut} \rbr{ A y - b } $\;
+	$ x^{\rbr{ i + 1 }} \slar \psi \rbr{ y - \eta \nabla g \rbr{y} } $\;
+	$ i \slar i + 1 $\;
+}
+
+\caption{Fast proximal gradient method without continuation} \label{Alg:FastProxGradNoCont}
+\end{algorithm}
+
+\begin{algorithm}
+\SetAlgoLined
+
+\KwData{$A$, $b$, $ \mu_j \crbr{ 1 \le j \le k } $, $x^{\rbr{0}}$, $\eta$}
+
+$ i \slar 0 $\;
+
+\For{$j$ from $1$ to $k$}
+{
+	$ i_j \slar 1 $\;
+	\While{not satisfies stop condition}
+	{
+		$ y = x^{\rbr{i}} + \frac{ i_j - 2 }{ i_j + 1 } \rbr{ x^{\rbr{i}} - x^{\rbr{ i - 1 }} } $\;
+		$ \nabla g \rbr{y} \slar A^{\rmut} \rbr{ A y - b } $\;
+		$ x^{\rbr{ i + 1 }} \slar \psi_j \rbr{ y - \eta \nabla g \rbr{y} } $\;
+		$ i \slar i + 1 $, $ i_j \slar i_j + 1 $\;
+	}
+}
+
+\caption{Fast proximal gradient method with continuation} \label{Alg:FastProxGrad}
+\end{algorithm}
+
+The function is \verb"l1_fast_prox_grad" in module \verb"method_fast_prox_grad".
+\end{thmquestion}
+
+\section{Numerical results}
+
+Numerical results are shown in Table \ref{Tbl:NumRes}.
+
+\begin{table}[htbp]
+\centering
+\begin{tabular}{|c|c|c|c|c|c|}
+\hline
+& time (\Si{\second}) & setup time (\Si{\second}) & solve time (\Si{\second}) & variables & iterations \\ \hline
+CVXPY-MOSEK & 1.154 & 0.073 & 0.643 & NA & 10  \\ \hline
+CVXPY-Gurobi & 15.570 & NA & 2.853 & NA & NA \\ \hline
+MOSEK & 0.759 & 0.085 & 0.665 & 2560 & 9 \\ \hline
+Gurobi & 18.206 & 17.067 & 1.127 & 2560 & 15 \\ \hline
+Algorithm \ref{Alg:SmoothSqrt} & 3.425 & NA & NA & 1024 & 4172 \\ \hline
+Algorithm \ref{Alg:SmoothLogExp} & 4.311 & NA & NA & 1024 & 4303 \\ \hline
+Algorithm \ref{Alg:FastSmoothSqrt} & 1.391 & NA & NA & 1024 & 1255 \\ \hline
+Algorithm \ref{Alg:ProxGrad} & 1.683 & NA & NA & 1024 & 2771 \\ \hline
+Algorithm \ref{Alg:FastProxGradNoCont} & 41.966 & NA & NA & 1024 & 50000 \\ \hline
+Algorithm \ref{Alg:FastProxGrad} & 0.388 & NA & NA & 1024 & 442 \\ \hline
+\end{tabular}
+
+\ 
+
+\begin{tabular}{|c|c|c|c|c|c|}
+\hline
+& primal objective & approximation error & error to known & error to GT \\ \hline
+CVXPY-MOSEK & 8.368e-02 & 2.417e-07 & 0.000e+00 & 1.116e-05 \\ \hline
+CVXPY-Gurobi & 8.368e-02 & 1.016e-07 & 7.983e-06 & 3.516e-06 \\ \hline
+MOSEK & 8.368e-02 & 2.287e-07 & 4.776e-06 & 1.545e-05 \\ \hline
+Gurobi & 8.368e-02 & 1.485e-07 & 8.309e-06 & 3.293e-06 \\ \hline
+Algorithm \ref{Alg:SmoothSqrt} & 8.368e-02 & 2.947e-07 & 3.597e-05 & 4.635e-05 \\ \hline
+Algorithm \ref{Alg:SmoothLogExp} & 4.799e-01 & 3.96e-01 & 2.335e-02 & 2.336e-02 \\ \hline
+Algorithm \ref{Alg:FastSmoothSqrt} & 8.367e-02 & 2.400e-07 & 2.459e-05 & 3.492e-05 \\ \hline
+Algorithm \ref{Alg:ProxGrad} & 8.368e-02 & 1.484e-07 & 8.365e-06 & 3.244e-06 \\ \hline
+Algorithm \ref{Alg:FastProxGradNoCont} & 8.368e-02 & 1.484e-07 & 8.365e-06 & 3.244e-06 \\ \hline
+Algorithm \ref{Alg:FastProxGrad} & 8.368e-02 & 1.422e-07 & 8.531e-06 & 3.079e-06 \\ \hline
+\end{tabular}
+
+\caption{Numerical results} \label{Tbl:NumRes}
+\end{table}
+
+In Table \ref{Tbl:NumRes}, ``approximation error'' stands for $ \frac{1}{2} \norm{ A x - b }_2^2 $, ``error to known'' stands for the error to known solution obtained by MOSEK from CVXPY, and ``error to GT'' stands for the error to \verb"u". (Note that the optimization problem is derived from compressive sensing, which finds a sparse representation of a optimization problem. Therefore, we denotes \verb"u" to be ``ground-truth'', which is solution to be reconstructed, even if it is not the exact solution of the optimization problem)
+
+All the codes are implemented in Python. These results are carried out on a computer with Intel Core i7-6500U (4 threads) and 7894 MiB RAM. The operating system is Arch Linux 4.13.12 64-bit and the Python environment is provided by Anaconda 4.3.30. The versions of Python, NumPy, CVXPY, MOSEK and Gurobi are 3.6.2, 1.13.1, 0.4.8, 8.1.31, 7.5.1 respectively.
+
+For all algorithms using continuation, the sequence of $\mu$ is $ \rbr{ 1000, 100, 10, 1, 0.1, 0.01, 0.001 } $. For all smoothed algorithms, $\epsilon$ are set to be $10^{-5}$. For further arguments and settings, please refer to \verb"test.ipynb".
+
+$x^{\rbr{0}}$ is not used when direct calling CVXPY or solvers.
+
+\section{Interpretations and Discussions}
+
+From the result, all algorithms except Algorithm \ref{Alg:SmoothLogExp} converges to the optimal solution. The accleration for fast gradient methods is prominent from the comparison of Algorithm \ref{Alg:ProxGrad} and \ref{Alg:FastProxGrad}
+
+Note that all proximal gradient method algorithms behaves better than the gradient method algorithms for smoothed problems. This is probably because the gradient from the $1$-norm regularization vanishes when $x$ approaches the minimal point, which leads to a difficulty in convergence even compared with sub-gradient method.
+
+Note that the Gurobi is not compatible with the memory model of Python, which results in a difficiency in setup time. To be exact, the Python version of Gurobi uses a class named \verb"tupledict" to handle matrices and tensors which cannot be directly converted to \verb"numpy.array", and therefore conversion accounts for the abnormal long setup time. The solve time makes sense anyway.
+
+	\end{document}

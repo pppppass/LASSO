@@ -92,7 +92,7 @@ def l1_gurobi_nonexpand(x0, A, b, mu, options={}):
         "num_var": M.getAttr("NumVars"),
         "iters": M.getAttr("BarIterCount"),
         "setup_time": setup_time,
-        "solve_time": M.getAttr("Runtime")
+        "solve_time": M.getAttr("Runtime"),
     }
 
     return [solution, out]
