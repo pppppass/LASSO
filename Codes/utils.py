@@ -1,129 +1,117 @@
-import math
-import time
 import numpy
 import matplotlib.pyplot as plt
-
-def sprandn(m, n, density):
-    ret = numpy.random.randn(m, n)
-    flag = numpy.random.uniform(0., 1., size=(m, n))
-    ret[flag > density] = 0.
-    return ret
-
-def generate_data(n=1024, m=512, mu=1.e-3):
-    A = numpy.random.randn(m, n)
-    u = sprandn(n, 1, 0.1)
-    b = A.dot(u)
-
-    x0 = numpy.random.rand(n, 1)
-    
-    return n, m, A, u, b, mu, x0
 
 def errfun(x1, x2):
     return numpy.linalg.norm(x1 - x2) / (1. + numpy.linalg.norm(x1))
 
-class Tester:
-    def __init__(self, n, m, A, u, b, mu, x0):
-        self.n = n
-        self.m = m
-        self.A = A
-        self.u = u
-        self.b = b
-        self.mu = mu
-        self.x0 = x0
+def l1_gt_wrapper_gen(u):
+    def l1_gt_wrapper(x0, A, b, mu, **opts):
+        return u, {"solution": u}
+    return l1_gt_wrapper
+
+notebook_config = {
+    "name": ["Name", "{}"],
+    "time": ["Time", "{:.5f}"],
+    "setup_time": ["Setup time", "{:.5f}"],
+    "solve_time": ["Solve time", "{:.5f}"],
+    "vars": ["Variables", "{}"],
+    "iters": ["Iterations", "{}"],
+    "loss": ["Loss", "{:.5e}"],
+    "check_loss": ["Check loss", "{:.5e}"],
+    "approximation_loss": ["Approx loss", "{:.5e}"],
+    "regularization": ["Regularization", "{:.5e}"],
+    "error_xx": ["Error to known", "{:.5e}"],
+    "error_gt": ["Error to GT", "{:.5e}"],
+}
+
+LaTeX_config = [{
+    "name": ["", "{}"],
+    "time": ["time (\Si{\second})", "{:.3f}"],
+    "setup_time": ["setup time (\Si{\second})", "{:.3f}"],
+    "solve_time": ["solve time (\Si{\second})", "{:.3f}"],
+    "vars": ["variables", "{}"],
+    "iters": ["iterations", "{}"],
+},{
+    "name": ["", "{}"],
+    "check_loss": ["primal objective", "{:.5e}"],
+    "approximation_loss": ["approximation loss", "{:.5e}"],
+    "error_xx": ["error to known", "{:.3e}"],
+    "error_gt": ["error to GT", "{:.3e}"],
+}]
+
+def format_notebook(out, config):
+    for key, val in config.items():
+        if key in out:
+            name = val[0]
+            rep = val[1].format(out[key])
+            print("{0}: {1}".format(name, rep))
+
+def format_LaTeX_piece(out, config, heading=True):
+    if heading:
+        format_ind = "|".join(["c"]*len(config))
+        print(r"\begin{{tabular}}{{|{}|}}".format(format_ind))
+        print(r"\hline")
+        string = " & ".join([
+            val[0]
+            for key, val in config.items()
+        ])
+        string += r" \\ \hline"
+        print(string)
     
-    def set_xx(self, func):
-        self.xx, _ = func(self.x0, self.A, self.b, self.mu)
+    string = " & ".join([
+        val[1].format(out[key])
+        if key in out
+        else "NA"
+        for key, val in config.items()
+    ])
+    string += r" \\ \hline"
+    print(string)
+
+def format_LaTeX_end():
+    print(r"\end{tabular}")
+
+def format_LaTeX(out_list, config):
+    first = True
+    for out in out_list:
+        format_LaTeX_piece(out, config, heading=first)
+        first = False
+    format_LaTeX_end()
+
+def draw_loss_curve(out, label, log=False):
     
+    for key, val in label.items():
+        array = out[key]
+        
+        if log:
+            array = numpy.log10(array)
+        
+        plt.plot(array, label=val)
     
-    def test(self, func, options={}):
-        start_time = time.time()
-        value, out = func(self.x0, self.A, self.b, self.mu, options)
-        end_time = time.time()
-        elapsed = end_time - start_time
+    plt.legend()
 
-        error = self.A.dot(value) - self.b
-        check_loss = 1. / 2. * numpy.sum(error**2) + self.mu * numpy.sum(numpy.abs(value))
-        approximation_loss = 1. / 2. * numpy.sum(error**2)
-        regularization = numpy.sum(numpy.abs(value))
-
-        out["name"] = func.__name__
-        out["value"] = value
-        out["time"] = elapsed
-        out["check_loss"] = check_loss
-        out["approximation_loss"] = approximation_loss
-        out["regularization"] = regularization
-        out["error_m"] = errfun(self.xx, value)
-        out["error_g"] = errfun(self.u, value)
-
-        print(
-    """The function {name} is executed:
-        cpu: {time:.5f} (setup: {setup_time:.5f}, solve: {solve_time:.5f}),
-        vars: {num_var}, iters: {iters},
-        loss: {loss:.5e} = check: {check_loss:.5e} (approx: {approximation_loss:5e} + mu*reg: {regularization:5e})
-        error to known xx: {error_m:.5e}
-        error to ground-truth: {error_g:.5e}""".format(**out)
-        )
-
-        return out
-
-def draw_sparse_figure(value):
-    fig, ax = plt.subplots()
-
-    n, bins, patches = ax.hist(value, bins=30)
-
-    fig.tight_layout()
     plt.show()
     
     return None
 
-def draw_loss_curve(array, label=None, log=False):
-    if label is not None:
-        for arr, lab in zip(array, label):
-            if log:
-                plt.plot(numpy.log(arr), label=lab)
-            else:
-                plt.plot(arr, label=lab)
-        plt.legend()
-    else:
-        for arr in array:
-            plt.plot(arr)
-
-    plt.show()
+class Stat(object):
+    def __init__(self):
+        self.stat = []
     
-    return None
-
-def mu_func_expo_dimish(start_mu, mu, prepare):
-    """
-    Return a function to modify mu, with exponentially dimishing strategy.
+    def __call__(self, out):
+        self.append(out)
     
-    Arguments:
-        x0 (float): the starting mu
-        mu (float): the ending mu
-        prepare (int): an integer indicating the time of dimishment
+    def append(self, out):
+        self.stat.append(out)
     
-    Returns:
-        a function mu_func, which valued start_mu at 0, mu at and after prepare, and exponentially
-        dimishing between 0 and prepare
-    """
-    def mu_func(i):
-        if i < prepare:
-            return math.pow(10., (math.log10(start_mu) - (math.log10(start_mu) - math.log10(mu)) * i / prepare))
-        else:
-            return mu
-    return mu_func
-
-def lr_func_frac_dimish(coefficient, offset):
-    """
-    Return a function to modify learning rate, with fractional dimishing strategy.
+    def pop(self):
+        self.stat.pop()
     
-    Arguments:
-        coefficient (float): the coefficient
-        offset (int): the offset of the linear fractional
+    def notebook_last(self, config=notebook_config):
+        format_notebook(self.stat[-1], config)
     
-    Returns:
-        a function lr_func, which valued coefficient / (x + offset) at x
-    """
-    def lr_func(i):
-        return coefficient / (i + offset)
+    def loss_curve_last(self, label={"real_loss": "Real loss", "formal_loss": "Modified loss"}, log=False):
+        draw_loss_curve(self.stat[-1], label=label, log=log)
     
-    return lr_func
+    def LaTeX_all(self, config_list=LaTeX_config):
+        format_LaTeX(self.stat, config_list[0])
+        format_LaTeX(self.stat, config_list[1])

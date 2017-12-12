@@ -7,48 +7,57 @@ def loss_func(A, x, b, mu):
     loss = 1. / 2. * numpy.sum(error**2) + mu * numpy.sum(numpy.abs(x))
     return loss
 
-def grad_func(A, x, b, mu):
-    error = A.dot(x) - b
-    grad_x = A.transpose().dot(error) + mu * numpy.sign(x)
-    return grad_x
+def update_x(x, y, lam, mu, lr):
+    shrink_positive = numpy.maximum((-mu - lam) / lr + y, 0.)
+    shrink_negative = numpy.minimum((mu - lam) / lr + y, 0.)
+    return shrink_positive + shrink_negative
 
-def init(x0):
+def init(A, x0, b):
     x = x0
-    return x
+    y = x0
+    lam = A.transpose().dot(A.dot(y) - b)
+    gamma = 1.618
+    return x, y, lam, gamma
 
-def iteration(A, x, b, mu, lr):
-    grad_x = grad_func(A, x, b, mu)
-    
-    x = x - lr * grad_x
-    
-    return x, grad_x
+def update_inv(n, A, lr):
+    inv = numpy.linalg.inv(A.transpose().dot(A) + lr * numpy.eye(n))
+    return inv
 
-def l1_sub_grad(
+def iteration(A, x, b, y, inv, lam, mu, gamma, lr):
+    x = update_x(x, y, lam, mu, lr)
+    
+    y = inv.dot(A.transpose().dot(b) + lam + lr * x)
+    
+    lam = lam + gamma * lr * (x - y)
+    
+    return x, y, lam
+
+def l1_ADMM_primal_direct(
     x0, A, b, mu,
     iter_list=[],
     lr_list=None,
     mu_list=None,
-    res_list=None,
     sep=0, figure=False, xx=None, **opts
 ):
     m, n = A.shape
     
     mu0 = mu
     
-    x = init(x0)
+    x, y, lam, gamma = init(A, x0, b)
     
     t = 0
     iter_len = len(iter_list)
     
-    formal_loss_list, real_loss_list, error_xx_list, grad_norm2_list = [], [], [], []
+    formal_loss_list, real_loss_list, error_xx_list = [], [], []
     
     for j in range(iter_len):
         if lr_list is not None:
             lr = lr_list[j]
+            inv = update_inv(n, A, lr)
         if mu_list is not None:
             mu = mu_list[j]
         for i in range(iter_list[j]):
-            x, grad_x = iteration(A, x, b, mu, lr)
+            x, y, lam = iteration(A, x, b, y, inv, lam, mu, gamma, lr)
             
             if figure:
                 formal_loss_list.append(loss_func(A, x, b, mu))
@@ -59,13 +68,6 @@ def l1_sub_grad(
             if sep != 0 and t % sep == 0:
                 loss = loss_func(A, x, b, mu0)
                 print("i: {0}, j: {1}, t: {2}, loss: {3:.5e}".format(i, j, t, loss))
-            
-            if res_list is not None:
-                grad_norm2 = numpy.sum(grad_x**2)
-                if figure:
-                    grad_norm2_list.append(grad_norm2)
-                if grad_norm2 < res_list[j]:
-                    break
                 
             t += 1
     
@@ -75,12 +77,11 @@ def l1_sub_grad(
     out = {
         "solution": solution,
         "loss": loss,
-        "vars": n,
+        "vars": 3*n,
         "iters": t,
         "formal_loss": numpy.array(formal_loss_list),
         "real_loss": numpy.array(real_loss_list),
         "error": numpy.array(error_xx_list),
-        "grad_norm2": numpy.array(grad_norm2_list),
     }
     
     return solution, out

@@ -1,313 +1,214 @@
-"""
-Solve lasso regularized least square by gradient method for the smoothed primal problem.
-"""
-
 import numpy
 
-def l1_smooth_grad_sqrt(x0, A, b, mu, options):
+from utils import errfun
+
+def sqrt_smooth(x, eps):
+    return numpy.sqrt(x**2 + eps**2) - eps
+
+def log_exp_smooth(x, eps):
+    return eps * (numpy.logaddexp(x / eps - numpy.log(2.), -x / eps - numpy.log(2.)))
+
+def no_smooth(x, eps):
+    return numpy.abs(x)
+
+def sqrt_smooth_grad(x, eps):
+    return x / numpy.sqrt(x**2 + eps**2)
+
+def log_exp_smooth_grad(x, eps):
+    return numpy.tanh(x / eps)
+
+def loss_func(A, x, b, mu, smooth_func, eps):
+    error = A.dot(x) - b
+    loss = 1. / 2. * numpy.sum(error**2) + mu * numpy.sum(smooth_func(x, eps))
+    return loss
+
+def grad_func(A, x, b, mu, smooth_grad, eps):
+    error = A.dot(x) - b
+    grad_x = A.transpose().dot(error) + mu * smooth_grad(x, eps)
+    return grad_x
+
+def init(x0):
+    x = x0
+    return x
+
+def iteration(A, x, b, mu, lr, smooth_grad, eps):
+    grad_x = grad_func(A, x, b, mu, smooth_grad, eps)
+    
+    x = x - lr * grad_x
+    
+    return x, grad_x
+
+def l1_smooth_grad(
+    x0, A, b, mu,
+    smooth_func=None, smooth_grad=None,
+    iter_list=[],
+    lr_list=None,
+    mu_list=None,
+    eps_list=None,
+    res_list=None,
+    sep=0, figure=False, xx=None, **opts
+):
     m, n = A.shape
     
-    def sqrt_smooth(x, eps):
-        return numpy.sqrt(x**2 + eps**2) - eps
+    mu0 = mu
     
-    def loss_func(x, mu, eps):
-        error = A.dot(x) - b
-        loss = 1. / 2. * numpy.sum(error**2) + mu * numpy.sum(sqrt_smooth(x, eps))
-        return loss
+    x = init(x0)
     
-    def grad(x, mu, eps):
-        error = A.dot(x) - b
-        grad_x = A.transpose().dot(error) + mu * x / numpy.sqrt(x**2 + eps**2)
-        return grad_x
+    t = 0
+    iter_len = len(iter_list)
     
-    iters = options["iters"]
-    list_avail, intel_loss_avail, intel_grad_norm2_avail = False, False, False
-    if "iter_list" in options.keys():
-        list_avail = True
-        iter_list = options["iter_list"]
-        list_ctr, list_item_ctr, list_len = 0, 0, len(iter_list)
-    if "intel_loss" in options.keys():
-        intel_loss_avail = True
-        intel_loss = options["intel_loss"]
-    if "intel_grad_norm2" in options.keys():
-        intel_grad_norm2_avail = True
-        intel_grad_norm2 = options["intel_grad_norm2"]
+    formal_loss_list, real_loss_list, orig_loss_list, error_xx_list, grad_norm2_list = [], [], [], [], []
     
-    lr_func_avail = False
-    if "lr_func" in options.keys():
-        lr_func_avail = True
-        lr_func = options["lr_func"]
-    if not lr_func_avail:
-        lr = options["lr_init"]
-    
-    mu_func_avail, mu_list_avail = False, False
-    if "mu_func" in options.keys():
-        mu_func_avail = True
-        mu_func = options["mu_func"]
-    if "mu_list" in options.keys():
-        mu_list_avail = True
-        mu_list = options["mu_list"]
-    if not mu_func_avail and not mu_list_avail:
-        now_mu = mu
-    
-    backtracking = False
-    if "bt_beta" in options.keys():
-        backtracking = True
-        beta = options["bt_beta"]
-    
-    eps = options["eps"]
-    
-    if "sep" in options.keys():
-        sep = options["sep"]
-    else:
-        sep = 0
-    
-    real_loss_list = []
-    formal_loss_list = []
-    orig_loss_list = []
-    
-    x = x0
-    
-    i_count = 0
-    loss, real_loss, last_loss = -1., -1., -1.
-    grad_norm2, last_grad_norm2 = -1., -1.
-    loss_bad_ctr, grad_norm2_bad_ctr = 0, 0
-    
-    def check_next_stage():
-        nonlocal list_item_ctr, list_ctr, list_len
-        list_item_ctr = 0
-        list_ctr += 1
-        if sep != 0:
-            print("The {}th stage".format(list_ctr))
-        return list_ctr >= list_len
-    
-    for i in range(iters):
-        i_count += 1
-        if list_avail:
-            list_item_ctr += 1
-            if list_item_ctr >= iter_list[list_ctr]:
-                if check_next_stage():
-                    break
-        
-        if lr_func_avail:
-            lr = lr_func(i)
-        
-        if mu_func_avail:
-            now_mu = mu_func(i)
-        elif mu_list_avail:
-            now_mu = mu_list[list_ctr]
+    for j in range(iter_len):
+        if lr_list is not None:
+            lr = lr_list[j]
+        if mu_list is not None:
+            mu = mu_list[j]
+        if eps_list is not None:
+            eps = eps_list[j]
+        for i in range(iter_list[j]):
+            x, grad_x = iteration(A, x, b, mu, lr, smooth_grad, eps)
             
-        last_loss = loss
-        real_loss = loss_func(x, mu, eps)
-        orig_loss = loss_func(x, mu, 0.)
-        loss = loss_func(x, now_mu, eps)
-        
-        real_loss_list.append(real_loss)
-        formal_loss_list.append(loss)
-        orig_loss_list.append(orig_loss)
-        
-        last_grad_norm2 = grad_norm2
-        grad_x = grad(x, now_mu, eps)
-        grad_norm2 = numpy.sum(grad_x**2)
-
-        if grad_norm2 < 1.e-6 or lr < 1.e-10:
-            if list_avail:
-                if check_next_stage():
+            if figure:
+                formal_loss_list.append(loss_func(A, x, b, mu, smooth_func, eps))
+                real_loss_list.append(loss_func(A, x, b, mu0, smooth_func, eps))
+                orig_loss_list.append(loss_func(A, x, b, mu0, no_smooth, eps))
+                if xx is not None:
+                    error_xx_list.append(errfun(x, xx))
+            
+            if sep != 0 and t % sep == 0:
+                loss = loss_func(A, x, b, mu0, smooth_func, eps)
+                print("i: {0}, j: {1}, t: {2}, loss: {3:.5e}".format(i, j, t, loss))
+            
+            if res_list is not None:
+                grad_norm2 = numpy.sum(grad_x**2)
+                if figure:
+                    grad_norm2_list.append(grad_norm2)
+                if grad_norm2 < res_list[j]:
                     break
-            else:
-                break
-        
-        if intel_loss_avail:
-            if loss > last_loss * intel_loss[0] and last_loss > 0.:
-                loss_bad_ctr += 1
-            if loss_bad_ctr > intel_loss[1] * list_item_ctr and list_item_ctr > intel_loss[2]:
-                loss_bad_ctr = 0
-                if check_next_stage():
-                    break
-        
-        if intel_grad_norm2_avail:
-            if grad_norm2 > last_grad_norm2 * intel_grad_norm2[0] and last_grad_norm2 > 0.:
-                grad_norm2_bad_ctr += 1
-            if grad_norm2_bad_ctr > intel_grad_norm2[1] * list_item_ctr and list_item_ctr > intel_grad_norm2[2]:
-                grad_norm2_bad_ctr = 0
-                if check_next_stage():
-                    break
-
-        if sep != 0 and i % sep == 0:
-            print(
-"""At the {0}-th iteration,\
- loss = {1:.5e}, lr = {2:.5e},\
- mu = {3:.5e}, grad_norm2 = {4:.5e}""".format(i, real_loss, lr, now_mu, grad_norm2))
-
-        x = x - lr*grad_x
+                
+            t += 1
     
     solution = x
-    loss = loss_func(x, mu, eps)
+    loss = loss_func(A, x, b, mu0, smooth_func, eps)
     
     out = {
         "solution": solution,
         "loss": loss,
-        "num_var": n,
-        "iters": i_count,
-        "setup_time": -1.,
-        "solve_time": -1.,
-        "real_loss": numpy.array(real_loss_list),
+        "vars": n,
+        "iters": t,
         "formal_loss": numpy.array(formal_loss_list),
+        "real_loss": numpy.array(real_loss_list),
         "orig_loss": numpy.array(orig_loss_list),
+        "error": numpy.array(error_xx_list),
+        "grad_norm2": numpy.array(grad_norm2_list),
     }
+    
+    return solution, out
 
-    return [solution, out]
+def l1_smooth_grad_sqrt(x0, A, b, mu, **opts):
+    return l1_smooth_grad(
+        x0, A, b, mu,
+        smooth_func=sqrt_smooth, smooth_grad=sqrt_smooth_grad,
+        **opts
+    )
 
-def l1_smooth_grad_log_exp(x0, A, b, mu, options):
+def l1_smooth_grad_log_exp(x0, A, b, mu, **opts):
+    return l1_smooth_grad(
+        x0, A, b, mu,
+        smooth_func=log_exp_smooth, smooth_grad=log_exp_smooth_grad,
+        **opts
+    )
+
+def iteration_fast(A, x, x_1, b, mu, lr, smooth_grad, eps, i):
+    y = x + (i - 1.) / (i + 2.) * (x - x_1)
+    x_1 = x
+    
+    grad_y = grad_func(A, y, b, mu, smooth_grad, eps)
+    
+    x = y - lr * grad_y 
+    return x, x_1, grad_y
+
+def l1_fast_smooth_grad(
+    x0, A, b, mu,
+    smooth_func=None, smooth_grad=None,
+    iter_list=[],
+    lr_list=None,
+    mu_list=None,
+    eps_list=None,
+    res_list=None,
+    sep=0, figure=False, xx=None, **opts
+):
     m, n = A.shape
     
-    def log_exp_smooth(x, eps):
-        return eps * (numpy.logaddexp(x / eps, -x / eps) - numpy.log(2.))
+    mu0 = mu
     
-    def loss_func(x, mu, eps):
-        error = A.dot(x) - b
-        loss = 1. / 2. * numpy.sum(error**2) + mu * numpy.sum(log_exp_smooth(x, eps))
-        return loss
+    x = init(x0)
+    x_1 = x
     
-    def grad(x, mu, eps):
-        error = A.dot(x) - b
-        grad_x = A.transpose().dot(error) + numpy.tanh(x / eps)
-        return grad_x
+    t = 0
+    iter_len = len(iter_list)
     
-    iters = options["iters"]
-    list_avail, intel_loss_avail, intel_grad_norm2_avail = False, False, False
-    if "iter_list" in options.keys():
-        list_avail = True
-        iter_list = options["iter_list"]
-        list_ctr, list_item_ctr, list_len = 0, 0, len(iter_list)
-    if "intel_loss" in options.keys():
-        intel_loss_avail = True
-        intel_loss = options["intel_loss"]
-    if "intel_grad_norm2" in options.keys():
-        intel_grad_norm2_avail = True
-        intel_grad_norm2 = options["intel_grad_norm2"]
+    formal_loss_list, real_loss_list, orig_loss_list, error_xx_list, grad_norm2_list = [], [], [], [], []
     
-    lr_func_avail = False
-    if "lr_func" in options.keys():
-        lr_func_avail = True
-        lr_func = options["lr_func"]
-    if not lr_func_avail:
-        lr = options["lr_init"]
-    
-    mu_func_avail, mu_list_avail = False, False
-    if "mu_func" in options.keys():
-        mu_func_avail = True
-        mu_func = options["mu_func"]
-    if "mu_list" in options.keys():
-        mu_list_avail = True
-        mu_list = options["mu_list"]
-    if not mu_func_avail and not mu_list_avail:
-        now_mu = mu
-    
-    backtracking = False
-    if "bt_beta" in options.keys():
-        backtracking = True
-        beta = options["bt_beta"]
-    
-    eps = options["eps"]
-    
-    if "sep" in options.keys():
-        sep = options["sep"]
-    else:
-        sep = 0
-    
-    real_loss_list = []
-    formal_loss_list = []
-    orig_loss_list = []
-    
-    x = x0
-    
-    i_count = 0
-    loss, real_loss, last_loss = -1., -1., -1.
-    grad_norm2, last_grad_norm2 = -1., -1.
-    loss_bad_ctr, grad_norm2_bad_ctr = 0, 0
-    
-    def check_next_stage():
-        nonlocal list_item_ctr, list_ctr, list_len
-        list_item_ctr = 0
-        list_ctr += 1
-        if sep != 0:
-            print("The {}th stage".format(list_ctr))
-        return list_ctr >= list_len
-    
-    for i in range(iters):
-        i_count += 1
-        if list_avail:
-            list_item_ctr += 1
-            if list_item_ctr >= iter_list[list_ctr]:
-                if check_next_stage():
-                    break
-        
-        if lr_func_avail:
-            lr = lr_func(i)
-        
-        if mu_func_avail:
-            now_mu = mu_func(i)
-        elif mu_list_avail:
-            now_mu = mu_list[list_ctr]
+    for j in range(iter_len):
+        if lr_list is not None:
+            lr = lr_list[j]
+        if mu_list is not None:
+            mu = mu_list[j]
+        if eps_list is not None:
+            eps = eps_list[j]
+        for i in range(iter_list[j]):
+            x, x_1, grad_y = iteration_fast(A, x, x_1, b, mu, lr, smooth_grad, eps, i)
             
-        last_loss = loss
-        real_loss = loss_func(x, mu, eps)
-        orig_loss = loss_func(x, mu, 0.)
-        loss = loss_func(x, now_mu, eps)
-        
-        real_loss_list.append(real_loss)
-        formal_loss_list.append(loss)
-        orig_loss_list.append(orig_loss)
-        
-        last_grad_norm2 = grad_norm2
-        grad_x = grad(x, now_mu, eps)
-        grad_norm2 = numpy.sum(grad_x**2)
-
-        if grad_norm2 < 1.e-6 or lr < 1.e-10:
-            if list_avail:
-                if check_next_stage():
+            if figure:
+                formal_loss_list.append(loss_func(A, x, b, mu, smooth_func, eps))
+                real_loss_list.append(loss_func(A, x, b, mu0, smooth_func, eps))
+                orig_loss_list.append(loss_func(A, x, b, mu0, no_smooth, eps))
+                if xx is not None:
+                    error_xx_list.append(errfun(x, xx))
+            
+            if sep != 0 and t % sep == 0:
+                loss = loss_func(A, x, b, mu0, smooth_func, eps)
+                print("i: {0}, j: {1}, t: {2}, loss: {3:.5e}".format(i, j, t, loss))
+            
+            if res_list is not None:
+                grad_norm2 = numpy.sum(grad_y**2)
+                if figure:
+                    grad_norm2_list.append(grad_norm2)
+                if grad_norm2 < res_list[j]:
                     break
-            else:
-                break
-        
-        if intel_loss_avail:
-            if loss > last_loss * intel_loss[0] and last_loss > 0.:
-                loss_bad_ctr += 1
-            if loss_bad_ctr > intel_loss[1] * list_item_ctr and list_item_ctr > intel_loss[2]:
-                loss_bad_ctr = 0
-                if check_next_stage():
-                    break
-        
-        if intel_grad_norm2_avail:
-            if grad_norm2 > last_grad_norm2 * intel_grad_norm2[0] and last_grad_norm2 > 0.:
-                grad_norm2_bad_ctr += 1
-            if grad_norm2_bad_ctr > intel_grad_norm2[1] * list_item_ctr and list_item_ctr > intel_grad_norm2[2]:
-                grad_norm2_bad_ctr = 0
-                if check_next_stage():
-                    break
-
-        if sep != 0 and i % sep == 0:
-            print(
-"""At the {0}-th iteration,\
- loss = {1:.5e}, lr = {2:.5e},\
- mu = {3:.5e}, grad_norm2 = {4:.5e}""".format(i, real_loss, lr, now_mu, grad_norm2))
-
-        x = x - lr*grad_x
+                
+            t += 1
     
     solution = x
-    loss = loss_func(x, mu, eps)
+    loss = loss_func(A, x, b, mu0, smooth_func, eps)
     
     out = {
         "solution": solution,
         "loss": loss,
-        "num_var": n,
-        "iters": i_count,
-        "setup_time": -1.,
-        "solve_time": -1.,
-        "real_loss": numpy.array(real_loss_list),
+        "vars": n,
+        "iters": t,
         "formal_loss": numpy.array(formal_loss_list),
+        "real_loss": numpy.array(real_loss_list),
         "orig_loss": numpy.array(orig_loss_list),
+        "error": numpy.array(error_xx_list),
+        "grad_norm2": numpy.array(grad_norm2_list),
     }
+    
+    return solution, out
 
-    return [solution, out]
+def l1_fast_smooth_grad_sqrt(x0, A, b, mu, **opts):
+    return l1_fast_smooth_grad(
+        x0, A, b, mu,
+        smooth_func=sqrt_smooth, smooth_grad=sqrt_smooth_grad,
+        **opts
+    )
+
+def l1_fast_smooth_grad_log_exp(x0, A, b, mu, **opts):
+    return l1_fast_smooth_grad(
+        x0, A, b, mu,
+        smooth_func=log_exp_smooth, smooth_grad=log_exp_smooth_grad,
+        **opts
+    )
+

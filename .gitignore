@@ -9,5 +9,4 @@
 *.thm
 *.pdf
 InitialData/
-
-!Report/Report1.pdf
+__pycache__/
