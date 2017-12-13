@@ -8,5 +8,6 @@
 *.out
 *.thm
 *.pdf
-InitialData/
+Raw/
 __pycache__/
+Upload/
