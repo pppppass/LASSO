@@ -1,0 +1,286 @@
+% !TeX encoding = UTF-8 Unicode
+% !TeX program = LuaLaTeX
+% !TeX spellcheck = LaTeX
+
+% Author : lzh
+% Description : Convex Optimization Homework 5 Report 3
+
+\documentclass[english]{pkupaper}
+
+\usepackage[paper, algorithm, si]{def}
+
+\newcommand{\cuniversity}{Peking University}
+\newcommand{\cthesisname}{Convex Optimization Homework 5}
+\newcommand{\titlemark}{Homework 5 Report 3}
+
+\title{\titlemark}
+\author{%
+	\begin{tabular}{c}
+李知含 \\
+1600010653
+	\end{tabular}%
+}
+
+	\begin{document}
+
+	\maketitle
+
+\textbf{Updates to numerical results are included in this report. Please turn to Section \ref{Sec:NumRes} for details.}
+
+\section{Answers to questions}
+
+\begin{thmquestion}[3 (g)] \label{Ques:ALM}
+The dual problem is
+\begin{equation}
+\begin{array}{ll}
+\mtx{maximize} & -\lambda^{\rmut} b - \frac{1}{2} \norm{\lambda}_2^2, \\
+\mtx{subject to} & -\mu 1 \preceq A^{\rmut} \lambda \preceq \mu 1.
+\end{array}
+\end{equation}
+Denote $ \nu = A^{\rmut} \lambda $ and region $ R = \cbr{ \rbr{ \lambda, \nu } : -\mu 1 \preceq \nu \preceq \mu 1 } $, the dual problem is equivalent to
+\begin{equation}
+\begin{array}{lc}
+\mtx{minimize} & \frac{1}{2} \norm{\lambda}_2^2 + \lambda^{\rmut} b + I_R \rbr{\nu}, \\
+\mtx{subject to} & A^{\rmut} \lambda = \nu,
+\end{array}
+\end{equation}
+and therefore the augmented Lagrangian is
+\begin{equation}
+L_{\eta} \rbr{ \lambda, \nu, \xi } = \frac{1}{2} \norm{\lambda}_2^2 + \lambda^{\rmut} b + I_R \rbr{\nu} + \xi^{\rmut} \rbr{ A^{\rmut} \lambda - \nu } + \frac{\eta}{2} \norm{ A^{\rmut} \lambda - \nu }_2^2.
+\end{equation}
+Note that the quadratic part of $\nu$ is exactly $\norm{\nu}_2^2$, and therefore the minimizer of $L_{\eta}$ can be explicitly found by the following procedure: (1) Let
+\begin{equation}
+\widetilde{L}_{\eta} \rbr{ \lambda, \nu, \xi } = \frac{1}{2} \norm{\lambda}_2^2 + \lambda^{\rmut} b + \xi^{\rmut} \rbr{ A^{\rmut} \lambda - \nu } + \frac{\eta}{2} \norm{ A^{\rmut} \lambda - \nu }_2^2
+\end{equation}
+be the unconstrained augmented Lagrangian. (2) Solve for $\lambda_{\rmlt}$ and $\nu_{\rmlt}$ from 
+\begin{gather}
+\nabla_{\lambda} \widetilde{L}_{\eta} \rbr{ \lambda_{\rmlt}, \nu_{\rmlt}, \xi } = \lambda_{\rmlt} + b_{\rmlt} + A \xi + \eta A \rbr{ A^{\rmut} \lambda_{\rmlt} - \nu_{\rmlt} } = 0, \\
+\nabla_{\nu} \widetilde{L}_{\eta} \rbr{ \lambda_{\rmlt}, \nu_{\rmlt}, \xi } = -\xi + \eta \rbr{ \nu_{\rmlt} - A^{\rmut} \lambda_{\rmlt} } = 0.
+\end{gather}
+(3) Perform Euclidean projection $P_R$ onto $R$ on $\nu_{\rmlt}$ to $\nu^{\star}$. (4) And then solve for $\lambda^{\star}$ from $ \nabla_{\nu} \widetilde{L}_{\eta} \rbr{ \lambda^{\star}, \nu^{\star}, \xi } = 0 $.
+
+The algorithm for augmented Lagrangian method using continuation is shown in Algorithm \ref{Alg:ALM}. The correspondence $ \lambda = A x - b $ and $ \nu = A^{\rmut} \lambda $, $ x = - \xi $ can derived by KKT conditions for the primal problem and the dual problem.
+
+\begin{algorithm}
+\SetAlgoLined
+
+\KwData{$A$, $b$, $ \mu_j \crbr{ 1 \le j \le k } $, $x^{\rbr{0}}$, $\eta$}
+
+$ i \slar 0 $\;
+$ \lambda^{\rbr{0}} \slar A x^{\rbr{0}} - b $\;
+$ \nu^{\rbr{0}} \slar A^{\rmut} \lambda $\;
+$ \xi^{\rbr{0}} \slar -x $\;
+
+\For{$j$ from $1$ to $k$}
+{
+	\While{not satisfies stop condition}
+	{
+		$ \lambda_{\rmlt} \slar -b $\;
+		$ \nu_{\rmlt} \slar A^{\rmut} \lambda_{\rmlt} + \frac{1}{\eta} \xi^{\rbr{i}} $\;
+		$ \nu^{\rbr{ i + 1 }} \slar \min \cbr{ \max \cbr{ \nu_{\rmlt}, -\mu_j 1 }, \mu_j 1 } $\;
+		$ \lambda^{\rbr{ i + 1 }} \slar \rbr{ I + \eta A A^{\rmut} }^{-1} \rbr{ \eta A \nu^{\rbr{ i + 1 }} - b - A \xi^{\rbr{i}} } $\;
+		$ \xi^{\rbr{ i + 1 }} \slar \xi^{\rbr{i}} + \eta \rbr{ A^{\rmut} \lambda^{\rbr{ i + 1 }} - \nu^{\rbr{ i + 1 }} } $\;
+		$ i \slar i + 1 $\;
+	}
+}
+
+$ x^{\rbr{i}} \slar -\xi^{\rbr{i}} $\;
+
+\caption{Augmented Lagrangian method for the dual problem using continuation} \label{Alg:ALM}
+\end{algorithm}
+
+In implementation, $ \rbr{ I + \eta A A^{\rmut} }^{-1} $ is only calculated in the outer loop to save time.
+
+The function is \verb"l1_ALM_dual" in module \verb"method_explicit_MM_dual".
+\end{thmquestion}
+
+\begin{thmquestion}[3 (h)]
+The dual problem and the augmented Lagrangian is shown in Question \ref{Ques:ALM}. Similarly, the algorithm for alternating direction method of multipliers is Algorithm \ref{Alg:ADMM}.
+
+\begin{algorithm}
+\SetAlgoLined
+
+\KwData{$A$, $b$, $ \mu_j \crbr{ 1 \le j \le k } $, $x^{\rbr{0}}$, $\eta$, $\gamma$}
+
+$ i \slar 0 $\;
+$ \lambda^{\rbr{0}} \slar A x^{\rbr{0}} - b $\;
+$ \nu^{\rbr{0}} \slar A^{\rmut} \lambda $\;
+$ \xi^{\rbr{0}} \slar -x $\;
+
+\For{$j$ from $1$ to $k$}
+{
+	\While{not satisfies stop condition}
+	{
+		$ \lambda^{\rbr{ i + 1 }} \slar \rbr{ I + \eta A A^{\rmut} }^{-1} \rbr{ \eta A \nu^{\rbr{i}} - b - A \xi^{\rbr{i}} } $ \;
+		$ \nu^{\rbr{ i + 1 }} \slar A^{\rmut} \lambda^{\rbr{ i + 1 }} + \frac{1}{\eta} \xi^{\rbr{i}} $\;
+		$ \nu^{\rbr{ i + 1 }} \slar \min \cbr{ \max \cbr{ \nu^{\rbr{ i + 1 }}, -\mu_j 1 }, \mu_j 1 } $\;
+		$ \xi^{\rbr{ i + 1 }} \slar \xi^{\rbr{i}} + \gamma \eta \rbr{ A^{\rmut} \lambda^{\rbr{ i + 1 }} - \nu^{\rbr{ i + 1 }} } $\;
+		$ i \slar i + 1 $\;
+	}
+}
+
+$ x^{\rbr{i}} \slar -\xi^{\rbr{i}} $\;
+
+\caption{Alternating direction method of multipliers for the dual problem method using continuation} \label{Alg:ADMM}
+\end{algorithm}
+
+In implementation, $ \rbr{ I + \eta A A^{\rmut} }^{-1} $ is only calculated in the outer loop. The coefficient $\gamma$ is set to be $1.618$.
+
+The functions is \verb"l1_ADMM_dual" in module \verb"method_explicit_MM_dual".
+\end{thmquestion}
+
+\begin{thmquestion}[3 (i)]
+The primal problem is equivalent to
+\begin{equation}
+\begin{array}{lc}
+\mtx{minimize} & \frac{1}{2} \norm{y}_2^2 + \mu \norm{x}_1 \\
+\mtx{subject to} & y = A x - b.
+\end{array}
+\end{equation}
+Therefore, denote the shrink function for $x$-updates
+\begin{equation}
+\phi \rbr{ x, g, \mu, \tau } = \max \cbr{ x - \tau g - \tau \mu 1, 0 } + \min \cbr{ x - \tau g + \tau \mu 1, 0 },
+\end{equation}
+and the algorithm using linearization can be written as Algorithm \ref{Alg:ADMMLinear}
+
+\begin{algorithm}
+\SetAlgoLined
+
+\KwData{$A$, $b$, $ \mu_j \crbr{ 1 \le j \le k } $, $x^{\rbr{0}}$, $\eta$, $\tau$, $\gamma$}
+
+$ i \slar 0 $\;
+$ y^{\rbr{0}} \slar A x^{\rbr{0}} - b $\;
+$ \lambda^{\rbr{0}} \slar y $\;
+
+\For{$j$ from $1$ to $k$}
+{
+	\While{not satisfies stop condition}
+	{
+		$ g = \eta A^{\rmut} \rbr{ A x^{\rbr{i}} - b - y^{\rbr{i}} } + A^{\rmut} \lambda^{\rbr{i}} $\;
+		$ x^{\rbr{ i + 1 }} = \phi \rbr{ x^{\rbr{i}}, g, \mu_j, \tau } $\;
+		$ y^{\rbr{ i + 1 }} = \rbr{ \lambda^{\rbr{i}} - \eta \rbr{ b - A x^{\rbr{ i + 1 }} } } / \rbr{ 1 + \eta } $\;
+		$ \lambda^{\rbr{ i + 1 }} = \lambda^{\rbr{i}} + \gamma \eta \rbr{ A x^{\rbr{ i + 1 }} - b - y^{\rbr{ i + 1 }} } $\;
+		$ i \slar i + 1 $\;
+	}
+}
+
+\caption{Alternating direction method of multipliers for the primal problem method using continuation and linearization} \label{Alg:ADMMLinear}
+\end{algorithm}
+
+Additionally, the primal problem can also be formulated as
+\begin{equation}
+\begin{array}{lc}
+\mtx{minimize} & \frac{1}{2} \norm{ A y - b }_2^2 + \mu \norm{x}_1, \\
+\mtx{subject to} & x = y,
+\end{array}
+\end{equation}
+and the alternating direction method of multipliers can be directly implemented by Algorithm \ref{Alg:ADMMDirect}, where the shrink function is
+\begin{equation}
+\psi \rbr{ x, y, \lambda, \mu, \eta } = \max \cbr{ \frac{1}{\eta} \rbr{ -\mu 1 - \lambda } + y, 0 } + \min \cbr{ \frac{1}{\eta} \rbr{ \mu 1 - \lambda } + y, 0 }.
+\end{equation}
+
+\begin{algorithm}
+\SetAlgoLined
+
+\KwData{$A$, $b$, $ \mu_j \crbr{ 1 \le j \le k } $, $x^{\rbr{0}}$, $\eta$, $\tau$, $\gamma$}
+
+$ i \slar 0 $\;
+$ y^{\rbr{0}} \slar x^{\rbr{0}} $\;
+$ \lambda^{\rbr{0}} \slar A^{\rmut} \rbr{ A x^{\rbr{0}} - b } $\;
+
+\For{$j$ from $1$ to $k$}
+{
+	\While{not satisfies stop condition}
+	{
+		$ x^{\rbr{ i + 1 }} = \psi \rbr{ x^{\rbr{i}}, y^{\rbr{i}}, \lambda^{\rbr{i}}, \mu_j, \eta } $\;
+		$ y^{\rbr{ i + 1 }} = \rbr{ A^{\rmut} A + \eta I }^{-1} \rbr{ A^{\rmut} b + \lambda + \eta x^{\rbr{ i + 1 }} } $\;
+		$ \lambda^{\rbr{ i + 1 }} = \lambda^{\rbr{i}} + \gamma \eta \rbr{ x - y } $\;
+		$ i \slar i + 1 $\;
+	}
+}
+
+\caption{Alternating direction method of multipliers for the primal problem method using continuation} \label{Alg:ADMMDirect}
+\end{algorithm}
+
+\end{thmquestion}
+
+\section{Numerical results} \label{Sec:NumRes}
+
+Numerical results are shown in Table \ref{Tbl:NumRes}.
+
+\begin{table}[htbp]
+\footnotesize
+\centering
+\begin{tabular}{|c|c|c|c|c|c|}
+\hline
+function name & time (\Si{\second}) & setup time (\Si{\second}) & solve time (\Si{\second}) & variables & iterations \\ \hline
+\verb"l1_gt_wrapper" & 0.000 & NA & NA & NA & NA \\ \hline
+\verb"l1_cvxpy_mosek" & 1.066 & 0.074 & 0.621 & NA & 9 \\ \hline
+\verb"l1_cvxpy_gurobi" & 15.969 & NA & 2.853 & NA & NA \\ \hline
+\verb"l1_mosek_qp" & 0.752 & 0.084 & 0.660 & 2560 & 9 \\ \hline
+\verb"l1_gurobi_nonexpand" & 17.467 & 16.409 & 1.048 & NA & 15 \\ \hline
+\verb"l1_sub_grad" & 0.522 & NA & NA & 1024 & 2025 (6) \\ \hline
+\verb"l1_proj_grad" & 0.723 & NA & NA & 2048 & 1550 (6) \\ \hline
+\verb"l1_smooth_grad_sqrt" & 0.548 & NA & NA & 1024 & 2025 (6) \\ \hline
+\verb"l1_smooth_grad_log_exp" & 0.561 & NA & NA & 1024 & 2025 (6) \\ \hline
+\verb"l1_fast_smooth_grad_sqrt" & 0.174 & NA & NA & 1024 & 600 (4) \\ \hline
+\verb"l1_fast_smooth_grad_log_exp" & 0.176 & NA & NA & 1024 & 600 (4) \\ \hline
+\verb"l1_prox_grad" & 0.421 & NA & NA & 1024 & 1550 (6) \\ \hline
+\verb"l1_fast_prox_grad" 1 & 8.345 & NA & NA & 1024 & 30000 (1) \\ \hline
+\verb"l1_fast_prox_grad" 2 & 0.129 & NA & NA & 1024 & 450 (4) \\ \hline
+\verb"l1_ALM_dual" & 0.192 & NA & NA & 2560 & 130 (4) \\ \hline
+\verb"l1_ADMM_dual" & 0.185 & NA & NA & 2560 & 105 (4) \\ \hline
+\verb"l1_ADMM_primal_linear" & 0.510 & NA & NA & 2560 & 700 (4) \\ \hline
+\verb"l1_ADMM_primal_direct" & 1.045 & NA & NA & 3072 & 700 (4) \\ \hline
+\end{tabular}
+
+\ 
+
+\centering
+\begin{tabular}{|c|c|c|c|c|}
+\hline
+function name & primal objective & approximation loss & error to known & error to GT \\ \hline
+\verb"l1_gt_wrapper" & 7.85148e-02 & 0.00000e+00 & 3.036e-05 & 0.000e+00 \\ \hline
+\verb"l1_cvxpy_mosek" & 7.85170e-02 & 2.07971e-07 & 0.000e+00 & 3.036e-05 \\ \hline
+\verb"l1_cvxpy_gurobi" & 7.85147e-02 & 1.30873e-07 & 2.828e-05 & 2.896e-06 \\ \hline
+\verb"l1_mosek_qp" & 7.85167e-02 & 2.07121e-07 & 8.211e-06 & 2.436e-05 \\ \hline
+\verb"l1_gurobi_nonexpand" & 7.85147e-02 & 1.22320e-07 & 2.848e-05 & 2.698e-06 \\ \hline
+\verb"l1_sub_grad" & 7.85154e-02 & 4.82710e-07 & 2.717e-05 & 4.483e-06 \\ \hline
+\verb"l1_proj_grad" & 7.85147e-02 & 1.22036e-07 & 2.854e-05 & 2.635e-06 \\ \hline
+\verb"l1_smooth_grad_sqrt" & 7.85153e-02 & 4.80401e-07 & 2.727e-05 & 4.409e-06 \\ \hline
+\verb"l1_smooth_grad_log_exp" & 7.85154e-02 & 4.75440e-07 & 2.714e-05 & 4.513e-06 \\ \hline
+\verb"l1_fast_smooth_grad_sqrt" & 7.85148e-02 & 1.45931e-07 & 2.743e-05 & 3.924e-06 \\ \hline
+\verb"l1_fast_smooth_grad_log_exp" & 7.85148e-02 & 1.40426e-07 & 2.742e-05 & 3.877e-06 \\ \hline
+\verb"l1_prox_grad" & 7.85147e-02 & 1.22036e-07 & 2.854e-05 & 2.635e-06 \\ \hline
+\verb"l1_fast_prox_grad" 1 & 7.85147e-02 & 1.22036e-07 & 2.854e-05 & 2.635e-06 \\ \hline
+\verb"l1_fast_prox_grad" 2 & 7.85147e-02 & 1.20963e-07 & 2.857e-05 & 2.607e-06 \\ \hline
+\verb"l1_ALM_dual" & 7.85147e-02 & 1.23221e-07 & 2.856e-05 & 2.641e-06 \\ \hline
+\verb"l1_ADMM_dual" & 7.85147e-02 & 1.28522e-07 & 2.852e-05 & 2.670e-06 \\ \hline
+\verb"l1_ADMM_primal_linear" & 7.85147e-02 & 1.20319e-07 & 2.873e-05 & 2.433e-06 \\ \hline
+\verb"l1_ADMM_primal_direct" & 7.85231e-02 & 8.99233e-06 & 2.612e-05 & 1.938e-05 \\ \hline
+\end{tabular}
+
+\caption{Numerical results} \label{Tbl:NumRes}
+\end{table}
+
+In Table \ref{Tbl:NumRes}, ``approximation loss'' stands for $ \frac{1}{2} \norm{ A x - b }_2^2 $, ``error to known'' stands for the error to known solution obtained by MOSEK from CVXPY, and ``error to GT'' stands for the error to \verb"u", which is the ground-truth solution for the lasso model. Note that the solution obtained by MOSEK has a primal objective greater than \verb"u" itself, which means MOSEK does not solve an exact solution for the problem. The numbers in the parenthesis in the ``iterations'' column refers to the number of outer iterations, namely the number of periods for continuation. The column ``variables`` denotes the variables in the problem.
+
+In Table \ref{Tbl:NumRes}, the entry \verb"l1_gt_wrapper" is a function returning \verb"u" directly, which is used for contrast. The entry \verb"l1_fast_prox_grad" 1 refers to FISTA without continuation, which is described in Algorithm 5 in Report 2, and the entry \verb"l1_fast_prox_grad" 2 is FISTA with continuation and Algorithm 6 in Report 2.
+
+\textbf{Note that the performance is prominently increased compared to previous reports because the Python interface is rewritten, which takes a great part of time. In other words, this is an update for the numerical results in the previous reports.}
+
+All the codes are implemented in Python. These results are carried out on a computer with Intel Core i7-6500U (4 threads) and 7894 MiB RAM. The operating system is Arch Linux 4.13.12 64-bit and the Python environment is provided by Anaconda 4.3.30. The versions of Python, NumPy, Scipy, CVXPY, MOSEK, Gurobi and Matplotlib are 3.6.2, 1.13.1, 0.19.1, 0.4.8, 8.1.31, 7.5.1 and 2.0.2 respectively.
+
+For further arguments and settings, please refer to \verb"test.ipynb". Raw data is provided in \verb"test-Report3.ipynb".
+
+Note that $x^{\rbr{0}}$ is not used when direct calling CVXPY or solvers.
+
+\section{Interpretations and Discussions}
+
+From the result, Algorithm \ref{Alg:ALM} and \ref{Alg:ADMM} both converge well, while Algorithm \ref{Alg:ALM} is slightly slower than Algorithm \ref{Alg:ADMM}. However, although the number of iterations are relatively small, it takes more time than Algorithm 6 in Report 2 (FISTA with continuation) mainly because of some matrix inverses and the number of variables.
+
+Algorithm \ref{Alg:ADMMLinear} and \ref{Alg:ADMMDirect} also converge, while \ref{Alg:ADMMLinear} is better. However, these algorithms behave worse than Algorithm \ref{Alg:ADMM} because they are stable enough and need more iterations. Algorithm \ref{Alg:ADMMDirect} takes more time mainly becuase the matrix to be inverted is of $ n \times n $ instead of $ m \times m $.
+
+Note that the Gurobi is not compatible with the memory model of Python, which results in a difficiency in setup time. To be exact, the Python version of Gurobi uses a class named \verb"tupledict" to handle matrices and tensors which cannot be directly converted to \verb"numpy.array", and therefore conversion accounts for the abnormal long setup time. The solve time makes sense anyway.
+
+	\end{document}
