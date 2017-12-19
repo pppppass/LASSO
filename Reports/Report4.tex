@@ -1,0 +1,249 @@
+% !TeX encoding = UTF-8 Unicode
+% !TeX program = LuaLaTeX
+% !TeX spellcheck = LaTeX
+
+% Author : lzh
+% Description : Convex Optimization Homework 5 Report 4
+
+\documentclass[english]{pkupaper}
+
+\usepackage[paper, algorithm, si]{def}
+
+\newcommand{\cuniversity}{Peking University}
+\newcommand{\cthesisname}{Convex Optimization Homework 5}
+\newcommand{\titlemark}{Homework 5 Report 4}
+
+\title{\titlemark}
+\author{%
+	\begin{tabular}{c}
+李知含 \\
+1600010653
+	\end{tabular}%
+}
+
+	\begin{document}
+
+	\maketitle
+
+\section{Answers to questions}
+
+\begin{thmquestion}[4]
+\begin{thmanswer}
+The algorithm of stochastic gradient descent using sub-gradients and continuation is shown in Algorithm \ref{Alg:SGD}. This algorithm is implemented as function \verb"l1_stochastic_sub_grad" in modulue \verb"method_sub_grad".
+
+\begin{algorithm}[htbp]
+\SetAlgoLined
+
+\KwData{Coefficient matrix $A$ of size $ m \times n $, transformed signal $b$, regularization coefficient $ \mu_j \crbr{ 1 \le j \le k } $, initial point $x^{\rbr{0}}$, learning rate $ \eta_j \crbr{ 1 \le j \le k } $, batch density $ \delta_j \crbr{ 1 \le j \le k } $}
+
+$ i \slar 0 $\;
+
+\For{$j$ from $1$ to $k$}
+{
+	\While{not satisfies stop condition}
+	{
+		Randomly choose $ \delta_j m $ rows of $A$ and $b$ to be $\widehat{A}$ and $\widehat{b}$\;
+		$ \nabla x^{\rbr{i}} \slar \frac{1}{\delta_j} \widehat{A}^{\rmut} \rbr{ \widehat{A} x^{\rbr{i}} - \widehat{b} } + \mu \opsgn x^{\rbr{i}} $\;
+		$ x^{\rbr{ i + 1 }} \slar x^{\rbr{i}} - \eta_j \nabla x^{\rbr{i}} $\;
+		$ i \slar i + 1 $\;
+	}
+}
+
+\caption{Stochastic gradient descent using sub-gradients and continuation} \label{Alg:SGD}
+\end{algorithm}
+
+The algorithm of sub-gradient descent using momentum and continuation is shown in Algorithm \ref{Alg:Mmtm}. This algorithm is implemented as function \verb"l1_momentum_sub_grad" in module \verb"method_momentum".
+
+\begin{algorithm}[htbp]
+\SetAlgoLined
+
+\KwData{Coefficient matrix $A$ of size $ m \times n $, transformed signal $b$, regularization coefficient $ \mu_j \crbr{ 1 \le j \le k } $, initial point $x^{\rbr{0}}$, learning rate $ \eta_j \crbr{ 1 \le j \le k } $, momentum decay $\alpha$}
+
+$ i \slar 0 $\;
+
+$ v^{\rbr{0}} \slar 0 $\;
+
+\For{$j$ from $1$ to $k$}
+{
+	\While{not satisfies stop condition}
+	{
+		$ \nabla x^{\rbr{i}} \slar A^{\rmut} \rbr{ A x^{\rbr{i}} - b } + \mu \opsgn x^{\rbr{i}} $\;
+		$ v^{\rbr{ i + 1 }} \slar \alpha v^{\rbr{i}} - \eta_j \nabla x^{\rbr{i}} $\;
+		$ x^{\rbr{ i + 1 }} \slar x^{\rbr{i}} + v^{\rbr{ i + 1 }} $\;
+		$ i \slar i + 1 $\;
+	}
+}
+
+\caption{Sub-gradient descent with momentum and continuation} \label{Alg:Mmtm}
+\end{algorithm}
+
+The algorithm of AdaGrad using sub-gradients and continuation is shown in Algorithm \ref{Alg:AdaGrad}. This algorithm is implemented as function \verb"l1_sub_AdaGrad" in module \verb"method_AdaGrad".
+
+\begin{algorithm}[htbp]
+\SetAlgoLined
+
+\KwData{Coefficient matrix $A$ of size $ m \times n $, transformed signal $b$, regularization coefficient $ \mu_j \crbr{ 1 \le j \le k } $, initial point $x^{\rbr{0}}$, learning rate $ \eta_j \crbr{ 1 \le j \le k } $, a small constant $\delta$}
+
+$ i \slar 0 $\;
+
+$ r^{\rbr{0}} \slar 0 $\;
+
+\For{$j$ from $1$ to $k$}
+{
+	\While{not satisfies stop condition}
+	{
+		$ \nabla x^{\rbr{i}} \slar A^{\rmut} \rbr{ A x^{\rbr{i}} - b } + \mu \opsgn x^{\rbr{i}} $\;
+		$ r^{\rbr{ i + 1 }} \slar r^{\rbr{i}} + \rbr{ \nabla x^{\rbr{i}} }^2 $ (element-wise)\;
+		$ x^{\rbr{ i + 1 }} \slar x^{\rbr{i}} - \eta_j \frac{ \nabla x^{\rbr{i}} }{ \delta + \sqrt{r^{\rbr{ i + 1 }}} } $ (element-wise)\;
+		$ i \slar i + 1 $\;
+	}
+}
+
+\caption{AdaGrad with sub-gradients and continuation} \label{Alg:AdaGrad}
+\end{algorithm}
+
+The algorithm of RMSProp using sub-gradients and continuation is shown in Algorithm \ref{Alg:RMSProp}. This algorithm is implemented as function \verb"l1_sub_RMSProp" in module \verb"method_RMSProp".
+
+\begin{algorithm}[htbp]
+\SetAlgoLined
+
+\KwData{Coefficient matrix $A$ of size $ m \times n $, transformed signal $b$, regularization coefficient $ \mu_j \crbr{ 1 \le j \le k } $, initial point $x^{\rbr{0}}$, learning rate $ \eta_j \crbr{ 1 \le j \le k } $, decay $\rho$, a small constant $\delta$}
+
+$ i \slar 0 $\;
+
+$ r^{\rbr{0}} \slar 0 $\;
+
+\For{$j$ from $1$ to $k$}
+{
+	\While{not satisfies stop condition}
+	{
+		$ \nabla x^{\rbr{i}} \slar A^{\rmut} \rbr{ A x^{\rbr{i}} - b } + \mu \opsgn x^{\rbr{i}} $\;
+		$ r^{\rbr{ i + 1 }} \slar \rho r^{\rbr{i}} + \rbr{ 1 - \rho } \rbr{ \nabla x^{\rbr{i}} }^2 $ (element-wise)\;
+		$ x^{\rbr{ i + 1 }} \slar x^{\rbr{i}} - \eta_j \frac{ \nabla x^{\rbr{i}} }{ \delta + \sqrt{r^{\rbr{ i + 1 }}} } $ (element-wise)\;
+		$ i \slar i + 1 $\;
+	}
+}
+
+\caption{RMSProp with sub-gradients and continuation} \label{Alg:RMSProp}
+\end{algorithm}
+
+The algorithm of Adam using sub-gradients and continuation is shown in Algorithm \ref{Alg:Adam}. This algorithm is implemented as function \verb"l1_sub_Adam" in module \verb"method_Adam".
+
+\begin{algorithm}[htbp]
+\SetAlgoLined
+
+\KwData{Coefficient matrix $A$ of size $ m \times n $, transformed signal $b$, regularization coefficient $ \mu_j \crbr{ 1 \le j \le k } $, initial point $x^{\rbr{0}}$, learning rate $ \eta_j \crbr{ 1 \le j \le k } $, decay $ \rho_1, \rho_2 $, a small constant $\delta$}
+
+$ i \slar 0 $\;
+
+$ s^{\rbr{0}} \slar 0 $\;
+$ r^{\rbr{0}} \slar 0 $\;
+
+\For{$j$ from $1$ to $k$}
+{
+	\While{not satisfies stop condition}
+	{
+		$ \nabla x^{\rbr{i}} \slar A^{\rmut} \rbr{ A x^{\rbr{i}} - b } + \mu \opsgn x^{\rbr{i}} $\;
+		$ s^{\rbr{ i + 1 }} \slar \rho_1 s^{\rbr{i}} + \rbr{ 1 - \rho_1 } \nabla x^{\rbr{i}} $\;
+		$ r^{\rbr{ i + 1 }} \slar \rho_2 r^{\rbr{i}} + \rbr{ 1 - \rho_2 } \rbr{ \nabla x^{\rbr{i}} }^2 $ (element-wise)\;
+		$ x^{\rbr{ i + 1 }} \slar x^{\rbr{i}} - \eta_j \frac{ s^{\rbr{ i + 1 }} / \rbr{ 1 - \rho_1^{ i + 1 } } }{ \delta + \sqrt{ r^{\rbr{ i + 1 }} / \rbr{ 1 - \rho_2^{ i + 1 } } } } $ (element-wise)\;
+		$ i \slar i + 1 $\;
+	}
+}
+
+\caption{Adam with sub-gradients and continuation} \label{Alg:Adam}
+\end{algorithm}
+
+\end{thmanswer}
+\end{thmquestion}
+
+\section{Numerical results}
+
+Numerical results are shown in Table \ref{Tbl:NumRes}.
+
+\begin{table}[htbp]
+\footnotesize
+\centering
+\begin{tabular}{|c|c|c|c|c|c|c|}
+\hline
+Function name & Time (\Si{\second}) & Setup time (\Si{\second}) & Solve time (\Si{\second}) & Variables & Cont. stages & Iterations \\ \hline
+\verb"l1_gt_wrapper" & 0.000 & NA & NA & NA & NA & NA \\ \hline
+\verb"l1_cvxpy_mosek" & 1.085 & 0.074 & 0.639 & NA & NA & 10 \\ \hline
+\verb"l1_cvxpy_gurobi" & 15.373 & NA & 2.828 & NA & NA & NA \\ \hline
+\verb"l1_mosek_qp" & 0.774 & 0.082 & 0.684 & 2560 & NA & 9 \\ \hline
+\verb"l1_gurobi_nonexpand" & 17.163 & 16.157 & 0.996 & NA & NA & 14 \\ \hline
+\verb"l1_sub_grad" & 0.448 & NA & NA & 1024 & 6 & 2025 \\ \hline
+\verb"l1_stochastic_sub_grad" & 1.596 & NA & NA & 1024 & 6 & 2025 \\ \hline
+\verb"l1_proj_grad" & 0.619 & NA & NA & 2048 & 6 & 1550 \\ \hline
+\verb"l1_smooth_grad_sqrt" & 0.457 & NA & NA & 1024 & 6 & 2025 \\ \hline
+\verb"l1_smooth_grad_log_exp" & 0.479 & NA & NA & 1024 & 6 & 2025 \\ \hline
+\verb"l1_fast_smooth_grad_sqrt" & 0.145 & NA & NA & 1024 & 4 & 600 \\ \hline
+\verb"l1_fast_smooth_grad_log_exp" & 0.147 & NA & NA & 1024 & 4 & 600 \\ \hline
+\verb"l1_prox_grad" & 0.353 & NA & NA & 1024 & 6 & 1550 \\ \hline
+\verb"l1_fast_prox_grad" & 7.471 & NA & NA & 1024 & 1 & 32000 \\ \hline
+\verb"l1_fast_prox_grad" & 0.108 & NA & NA & 1024 & 4 & 450 \\ \hline
+\verb"l1_ALM_dual" & 0.192 & NA & NA & 2560 & 4 & 140 \\ \hline
+\verb"l1_ADMM_dual" & 0.166 & NA & NA & 2560 & 4 & 115 \\ \hline
+\verb"l1_ADMM_primal_linear" & 0.492 & NA & NA & 2560 & 4 & 700 \\ \hline
+\verb"l1_ADMM_primal_direct" & 1.035 & NA & NA & 3072 & 4 & 700 \\ \hline
+\verb"l1_momentum_sub_grad" & 0.128 & NA & NA & 2048 & 6 & 550 \\ \hline
+\verb"l1_sub_AdaGrad" & 0.396 & NA & NA & 2048 & 6 & 1700 \\ \hline
+\verb"l1_sub_RMSProp" & 0.371 & NA & NA & 2048 & 6 & 1550 \\ \hline
+\verb"l1_sub_Adam" & 0.210 & NA & NA & 3072 & 6 & 825 \\ \hline
+\end{tabular}
+
+\ 
+
+\centering
+\begin{tabular}{|c|c|c|c|c|}
+\hline
+Function name & Primal objective & Approximation loss & Error to known & Error to GT \\ \hline
+\verb"l1_gt_wrapper" & 7.9620151e-02 & 0.0000000e+00 & 1.655e-05 & 0.000e+00 \\ \hline
+\verb"l1_cvxpy_mosek" & 7.9621050e-02 & 1.9229264e-07 & 0.000e+00 & 1.655e-05 \\ \hline
+\verb"l1_cvxpy_gurobi" & 7.9620186e-02 & 1.3559061e-07 & 1.187e-05 & 5.240e-06 \\ \hline
+\verb"l1_mosek_qp" & 7.9620959e-02 & 1.9294288e-07 & 1.889e-06 & 1.628e-05 \\ \hline
+\verb"l1_gurobi_nonexpand" & 7.9620030e-02 & 1.2130585e-07 & 1.430e-05 & 2.811e-06 \\ \hline
+\verb"l1_sub_grad" & 7.9620712e-02 & 4.8035603e-07 & 1.290e-05 & 4.667e-06 \\ \hline
+\verb"l1_stochastic_sub_grad" & 7.9620712e-02 & 4.4702329e-07 & 1.294e-05 & 4.616e-06 \\ \hline
+\verb"l1_proj_grad" & 7.9620029e-02 & 1.2121064e-07 & 1.433e-05 & 2.778e-06 \\ \hline
+\verb"l1_smooth_grad_sqrt" & 7.9620749e-02 & 4.6370526e-07 & 1.286e-05 & 4.686e-06 \\ \hline
+\verb"l1_smooth_grad_log_exp" & 7.9620700e-02 & 4.7106870e-07 & 1.293e-05 & 4.654e-06 \\ \hline
+\verb"l1_fast_smooth_grad_sqrt" & 7.9620191e-02 & 1.3286560e-07 & 1.312e-05 & 4.066e-06 \\ \hline
+\verb"l1_fast_smooth_grad_log_exp" & 7.9620190e-02 & 1.4138957e-07 & 1.302e-05 & 4.186e-06 \\ \hline
+\verb"l1_prox_grad" & 7.9620029e-02 & 1.2121087e-07 & 1.433e-05 & 2.778e-06 \\ \hline
+\verb"l1_fast_prox_grad" & 7.9620029e-02 & 1.2121057e-07 & 1.433e-05 & 2.778e-06 \\ \hline
+\verb"l1_fast_prox_grad" & 7.9620029e-02 & 1.2031596e-07 & 1.435e-05 & 2.754e-06 \\ \hline
+\verb"l1_ALM_dual" & 7.9620045e-02 & 1.2170624e-07 & 1.432e-05 & 2.794e-06 \\ \hline
+\verb"l1_ADMM_dual" & 7.9620030e-02 & 1.2348189e-07 & 1.433e-05 & 2.785e-06 \\ \hline
+\verb"l1_ADMM_primal_linear" & 7.9620034e-02 & 1.1712872e-07 & 1.466e-05 & 2.439e-06 \\ \hline
+\verb"l1_ADMM_primal_direct" & 7.9620143e-02 & 3.9534301e-07 & 1.342e-05 & 4.424e-06 \\ \hline
+\verb"l1_momentum_sub_grad" & 7.9620396e-02 & 1.9269344e-07 & 1.276e-05 & 4.706e-06 \\ \hline
+\verb"l1_sub_AdaGrad" & 7.9620436e-02 & 2.6938289e-07 & 1.319e-05 & 4.138e-06 \\ \hline
+\verb"l1_sub_RMSProp" & 7.9620599e-02 & 4.0015325e-07 & 1.271e-05 & 4.827e-06 \\ \hline
+\verb"l1_sub_Adam" & 7.9620137e-02 & 1.3514387e-07 & 1.373e-05 & 3.413e-06 \\ \hline
+\end{tabular}
+
+\caption{Numerical results} \label{Tbl:NumRes}
+\end{table}
+
+In Table \ref{Tbl:NumRes}, ``Approximation loss'' stands for $ \frac{1}{2} \norm{ A x - b }_2^2 $, ``Error to known'' stands for the error to known solution obtained by MOSEK from CVXPY, and ``Error to GT'' stands for the error to \verb"u", which is the ground-truth solution for the lasso model. Note that the solution obtained by MOSEK has a primal objective greater than \verb"u" itself, which means MOSEK does not solve an exact solution for the problem. The column ``Cont. stages'' means the number of stages used for continuation.
+
+In Table \ref{Tbl:NumRes}, the entry \verb"l1_gt_wrapper" is a function returning \verb"u" directly, which is used for contrast. The entry \verb"l1_fast_prox_grad" 1 refers to FISTA without continuation, which is described in Algorithm 5 in Report 2, and the entry \verb"l1_fast_prox_grad" 2 is FISTA with continuation and Algorithm 6 in Report 2.
+
+Slight modification are applied to the previous algorithms.
+
+In Algorithm \ref{Alg:Mmtm}, $\alpha$ is valued to be $0.8$. In Algorithm \ref{Alg:AdaGrad}, $\delta$ is set to be $10^{-7}$. In Algorithm \ref{Alg:RMSProp}, $\delta$ is $10^{-7}$ and $\rho$ is set to be $0.9$. In Algorithm \ref{Alg:Adam}, $\delta$ is $10^{-7}$, and $ \rho_1, \rho_2 $ are set to be $ 0.9, 0.999 $ respectively.
+
+For further arguments and settings, please refer to \verb"test.ipynb". Raw data is provided in \verb"test-Report4.ipynb".
+
+Note that $x^{\rbr{0}}$ is not used when directly calling CVXPY or solvers.
+
+All the codes are implemented in Python. These results are carried out on a computer with Intel Core i7-6500U (4 threads) and $\SI{7890}{\mebi\byte}$ RAM. The operating system is Arch Linux 4.14.5 64-bit and the Python environment is provided by Anaconda 4.3.30. The versions of Python, NumPy, Scipy, CVXPY, MOSEK, Gurobi and Matplotlib are 3.6.2, 1.13.1, 0.19.1, 0.4.8, 8.1.31, 7.5.1 and 2.0.2 respectively.
+
+\section{Interpretations and Discussions}
+
+From the numerical results, all the five algorithms coverges well. The stochastic sub-gradient descent takes more time than plain sub-gradient descent, which is because of intensive calculation of random samples. Algorithm \ref{Alg:Mmtm} and \ref{Alg:Adam}, the two algorithms with momentum, behave better than the two emphasizing on adaptive step size, and these four algorithms all converges faster than plain sub-gradient descent.
+
+Note that the Gurobi is not compatible with the memory model of Python, which results in a difficiency in setup time. To be exact, the Python version of Gurobi uses a class named \verb"tupledict" to handle matrices and tensors which cannot be directly converted to \verb"numpy.array", and therefore conversion accounts for the abnormal long setup time. The solve time makes sense anyway.
+
+	\end{document}
