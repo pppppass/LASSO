@@ -33,8 +33,6 @@ def iteration_ALM(A, b, inv, lam, nu, xi, mu, gamma, lr):
     
     xi = xi + lr * (A.transpose().dot(lam) - nu)
     
-    x = -xi
-    
     return lam, nu, xi
 
 def iteration_ADMM(A, b, inv, lam, nu, xi, mu, gamma, lr):
@@ -44,8 +42,6 @@ def iteration_ADMM(A, b, inv, lam, nu, xi, mu, gamma, lr):
     nu = numpy.minimum(numpy.maximum(nu, -mu), +mu)
     
     xi = xi + gamma * lr * (A.transpose().dot(lam) - nu)
-    
-    x = -xi
     
     return lam, nu, xi
 
@@ -69,11 +65,9 @@ def l1_explicit_MM_dual(
     formal_loss_list, real_loss_list, error_xx_list = [], [], []
     
     for j in range(iter_len):
-        if lr_list is not None:
-            lr = lr_list[j]
-            inv = update_inv(m, A, lr)
-        if mu_list is not None:
-            mu = mu_list[j]
+        lr = lr_list[j]
+        inv = update_inv(m, A, lr)
+        mu = mu_list[j]
         for i in range(iter_list[j]):
             lam, nu, xi = iter_func(A, b, inv, lam, nu, xi, mu, gamma, lr)
             
@@ -98,6 +92,7 @@ def l1_explicit_MM_dual(
         "loss": loss,
         "vars": 2*n + m,
         "iters": t,
+        "conts": iter_len,
         "formal_loss": numpy.array(formal_loss_list),
         "real_loss": numpy.array(real_loss_list),
         "error": numpy.array(error_xx_list),

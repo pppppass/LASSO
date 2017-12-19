@@ -48,10 +48,8 @@ def l1_prox_grad(
     formal_loss_list, real_loss_list, error_xx_list, grad_norm2_list = [], [], [], []
     
     for j in range(iter_len):
-        if lr_list is not None:
-            lr = lr_list[j]
-        if mu_list is not None:
-            mu = mu_list[j]
+        lr = lr_list[j]
+        mu = mu_list[j]
         for i in range(iter_list[j]):
             x, grad_x = iteration(A, x, b, mu, lr)
             
@@ -82,6 +80,7 @@ def l1_prox_grad(
         "loss": loss,
         "vars": n,
         "iters": t,
+        "conts": iter_len,
         "formal_loss": numpy.array(formal_loss_list),
         "real_loss": numpy.array(real_loss_list),
         "error": numpy.array(error_xx_list),
@@ -120,10 +119,8 @@ def l1_fast_prox_grad(
     formal_loss_list, real_loss_list, error_xx_list, grad_norm2_list = [], [], [], []
     
     for j in range(iter_len):
-        if lr_list is not None:
-            lr = lr_list[j]
-        if mu_list is not None:
-            mu = mu_list[j]
+        lr = lr_list[j]
+        mu = mu_list[j]
         for i in range(iter_list[j]):
             x, x_1, grad_x = iteration_fast(A, x, x_1, b, mu, lr, i)
             
@@ -154,6 +151,7 @@ def l1_fast_prox_grad(
         "loss": loss,
         "vars": n,
         "iters": t,
+        "conts": iter_len,
         "formal_loss": numpy.array(formal_loss_list),
         "real_loss": numpy.array(real_loss_list),
         "error": numpy.array(error_xx_list),

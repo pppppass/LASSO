@@ -60,12 +60,9 @@ def l1_smooth_grad(
     formal_loss_list, real_loss_list, orig_loss_list, error_xx_list, grad_norm2_list = [], [], [], [], []
     
     for j in range(iter_len):
-        if lr_list is not None:
-            lr = lr_list[j]
-        if mu_list is not None:
-            mu = mu_list[j]
-        if eps_list is not None:
-            eps = eps_list[j]
+        lr = lr_list[j]
+        mu = mu_list[j]
+        eps = eps_list[j]
         for i in range(iter_list[j]):
             x, grad_x = iteration(A, x, b, mu, lr, smooth_grad, eps)
             
@@ -97,6 +94,7 @@ def l1_smooth_grad(
         "loss": loss,
         "vars": n,
         "iters": t,
+        "conts": iter_len,
         "formal_loss": numpy.array(formal_loss_list),
         "real_loss": numpy.array(real_loss_list),
         "orig_loss": numpy.array(orig_loss_list),
@@ -152,12 +150,9 @@ def l1_fast_smooth_grad(
     formal_loss_list, real_loss_list, orig_loss_list, error_xx_list, grad_norm2_list = [], [], [], [], []
     
     for j in range(iter_len):
-        if lr_list is not None:
-            lr = lr_list[j]
-        if mu_list is not None:
-            mu = mu_list[j]
-        if eps_list is not None:
-            eps = eps_list[j]
+        lr = lr_list[j]
+        mu = mu_list[j]
+        eps = eps_list[j]
         for i in range(iter_list[j]):
             x, x_1, grad_y = iteration_fast(A, x, x_1, b, mu, lr, smooth_grad, eps, i)
             
@@ -189,6 +184,7 @@ def l1_fast_smooth_grad(
         "loss": loss,
         "vars": n,
         "iters": t,
+        "conts": iter_len,
         "formal_loss": numpy.array(formal_loss_list),
         "real_loss": numpy.array(real_loss_list),
         "orig_loss": numpy.array(orig_loss_list),
@@ -211,4 +207,3 @@ def l1_fast_smooth_grad_log_exp(x0, A, b, mu, **opts):
         smooth_func=log_exp_smooth, smooth_grad=log_exp_smooth_grad,
         **opts
     )
-

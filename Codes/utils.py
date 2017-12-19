@@ -16,27 +16,28 @@ notebook_config = {
     "solve_time": ["Solve time", "{:.5f}"],
     "vars": ["Variables", "{}"],
     "iters": ["Iterations", "{}"],
-    "loss": ["Loss", "{:.5e}"],
-    "check_loss": ["Check loss", "{:.5e}"],
-    "approximation_loss": ["Approx loss", "{:.5e}"],
-    "regularization": ["Regularization", "{:.5e}"],
+    "loss": ["Loss", "{:.7e}"],
+    "check_loss": ["Check loss", "{:.7e}"],
+    "approximation_loss": ["Approx loss", "{:.7e}"],
+    "regularization": ["Regularization", "{:.7e}"],
     "error_xx": ["Error to known", "{:.5e}"],
     "error_gt": ["Error to GT", "{:.5e}"],
 }
 
 LaTeX_config = [{
-    "name": ["", "{}"],
-    "time": ["time (\Si{\second})", "{:.3f}"],
-    "setup_time": ["setup time (\Si{\second})", "{:.3f}"],
-    "solve_time": ["solve time (\Si{\second})", "{:.3f}"],
-    "vars": ["variables", "{}"],
-    "iters": ["iterations", "{}"],
+    "name": ["Function name", "\\verb\"{}\""],
+    "time": ["Time (\Si{\second})", "{:.3f}"],
+    "setup_time": ["Setup time (\Si{\second})", "{:.3f}"],
+    "solve_time": ["Solve time (\Si{\second})", "{:.3f}"],
+    "vars": ["Variables", "{}"],
+    "conts": ["Cont. stages", "{}"],
+    "iters": ["Iterations", "{}"],
 },{
-    "name": ["", "{}"],
-    "check_loss": ["primal objective", "{:.5e}"],
-    "approximation_loss": ["approximation loss", "{:.5e}"],
-    "error_xx": ["error to known", "{:.3e}"],
-    "error_gt": ["error to GT", "{:.3e}"],
+    "name": ["Function name", "\\verb\"{}\""],
+    "check_loss": ["Primal objective", "{:.7e}"],
+    "approximation_loss": ["Approximation loss", "{:.7e}"],
+    "error_xx": ["Error to known", "{:.3e}"],
+    "error_gt": ["Error to GT", "{:.3e}"],
 }]
 
 def format_notebook(out, config):

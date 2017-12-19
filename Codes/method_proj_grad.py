@@ -55,10 +55,8 @@ def l1_proj_grad(
     formal_loss_list, real_loss_list, error_xx_list, grad_norm2_list = [], [], [], []
     
     for j in range(iter_len):
-        if lr_list is not None:
-            lr = lr_list[j]
-        if mu_list is not None:
-            mu = mu_list[j]
+        lr = lr_list[j]
+        mu = mu_list[j]
         for i in range(iter_list[j]):
             u, v, grad_u, grad_v = iteration(n, A, u, v, b, mu, lr)
             
@@ -90,6 +88,7 @@ def l1_proj_grad(
         "loss": loss,
         "vars": 2*n,
         "iters": t,
+        "conts": iter_len,
         "formal_loss": numpy.array(formal_loss_list),
         "real_loss": numpy.array(real_loss_list),
         "error": numpy.array(error_xx_list),
